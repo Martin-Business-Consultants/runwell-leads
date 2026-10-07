@@ -1,7 +1,8 @@
 <%# locals: (lead:, can_write:) %>
 <%# The score, how far it is from qualifying, and changing it by hand. %>
 <% threshold = Leads::Settings.current.threshold %>
-<%= postbox "lead-score", "Score" do %>
+<section class="<%= ui(:panel, "space-y-5 p-5 text-sm") %>" aria-labelledby="lead_score">
+  <h2 id="lead_score" class="<%= ui(:heading) %>">Score</h2>
   <div class="flex items-baseline justify-between gap-3">
     <span class="text-3xl font-semibold tabular-nums text-gray-900"><%= lead.score %></span>
     <span class="text-xs text-gray-500">
@@ -23,4 +24,4 @@
       <div><button type="submit" class="<%= ui(:button, :small) %>">Adjust score</button></div>
     <% end %>
   <% end %>
-<% end %>
+</section>

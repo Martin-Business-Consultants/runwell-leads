@@ -1,6 +1,7 @@
 <%# locals: (lead:, enrollments:, sequences:, can_write:) %>
 <%# The sequences the lead is (or was) in, stopping one, and enrolling it in another. %>
-<%= postbox "lead-sequences", "Sequences", flush: true do %>
+<section class="<%= ui(:panel, "text-sm") %>" aria-labelledby="lead_sequences">
+  <h2 id="lead_sequences" class="<%= ui(:heading, "border-b border-gray-200 px-5 py-3.5") %>">Sequences</h2>
   <% if lead.unsubscribed? %>
     <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4">
       <p class="text-gray-600">Unsubscribed <%= time_ago_tag lead.unsubscribed_at %>: no sequence emails it.</p>
@@ -53,4 +54,4 @@
       </p>
     <% end %>
   <% end %>
-<% end %>
+</section>

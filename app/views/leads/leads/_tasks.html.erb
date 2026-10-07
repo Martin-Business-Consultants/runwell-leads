@@ -1,8 +1,9 @@
 <%# locals: (lead:, tasks:) %>
 <%# The lead's follow-ups, open ones first: tick one off, edit it, or add one. %>
 <% can_write = Current.user.can?("tasks:write") %>
-<%= postbox "lead-tasks", "Tasks", flush: true do %>
-  <div id="tasks">
+<section id="tasks" class="<%= ui(:panel, "text-sm") %>" aria-labelledby="lead_tasks">
+  <h2 id="lead_tasks" class="<%= ui(:heading, "border-b border-gray-200 px-5 py-3.5") %>">Tasks</h2>
+  <div>
     <% if tasks.any? %>
       <ul class="divide-y divide-gray-100">
         <% tasks.each do |task| %>
@@ -47,4 +48,4 @@
       <% end %>
     <% end %>
   </div>
-<% end %>
+</section>

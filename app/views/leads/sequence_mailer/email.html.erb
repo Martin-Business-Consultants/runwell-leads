@@ -6,7 +6,7 @@
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e7e5e4;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
         <tr>
           <td style="padding:28px 32px;font-size:15px;line-height:1.6;">
-            <%= @body_html.html_safe %>
+            <%= sanitize @body_html, tags: Markdown::TAGS, attributes: Markdown::ATTRIBUTES %>
           </td>
         </tr>
         <tr>
@@ -17,7 +17,7 @@
             <p style="margin:0;">
               You’re getting this because you got in touch with us.
               <% if @unsubscribe_url %>
-                <a href="<%= @unsubscribe_url %>" style="color:#57534e;text-decoration:underline;">Unsubscribe</a>
+                <%= link_to "Unsubscribe", @unsubscribe_url, style: "color:#57534e;text-decoration:underline;" %>
               <% else %>
                 <span style="text-decoration:underline;">Unsubscribe</span> (the link works in a lead’s copy)
               <% end %>
@@ -26,7 +26,7 @@
         </tr>
       </table>
       <% if @open_url %>
-        <img src="<%= @open_url %>" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;">
+        <%= image_tag @open_url, width: 1, height: 1, alt: "", style: "display:block;width:1px;height:1px;border:0;" %>
       <% end %>
     </td>
   </tr>

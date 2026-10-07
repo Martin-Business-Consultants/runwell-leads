@@ -79,7 +79,7 @@
                 <td class="<%= ui(:td, "pr-6") %>">
                   <label class="sr-only" for="capture_sequence_<%= form_record.id %>">Sequence for new leads from <%= form_record.title %></label>
                   <%= select_tag "#{prefix}[sequence_id]", options_for_select(lead_sequence_options(@sequences), @settings.sequence_id_for(form_record)),
-                        include_blank: "None", id: "capture_sequence_#{form_record.id}", class: "w-full min-w-40" %>
+                        include_blank: "None", id: "capture_sequence_#{form_record.id}", class: "w-full" %>
                 </td>
               </tr>
             <% end %>
