@@ -39,18 +39,19 @@
   <% else %>
     <p class="px-5 py-4 text-gray-500">Not in a sequence.</p>
   <% end %>
+  <% joinable = sequences.reject { |sequence| enrollments.any? { it.active? && it.sequence_id == sequence.id } } %>
   <% if can_write && lead.sendable? %>
-    <% if sequences.any? %>
+    <% if joinable.any? %>
       <%= form_with url: lead_enrollments_path(lead), scope: :enrollment, class: "flex items-end gap-2 rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-4" do |form| %>
         <label class="flex min-w-0 flex-1 flex-col gap-1.5">
           <span class="<%= ui(:label) %>">Enroll in</span>
-          <%= form.select :sequence_id, sequences.map { [ it.name, it.id ] }, {}, class: "w-full" %>
+          <%= form.select :sequence_id, joinable.map { [ it.name, it.id ] }, {}, class: "w-full" %>
         </label>
         <button type="submit" class="<%= ui(:button, :small, "mb-0.5") %>">Enroll</button>
       <% end %>
     <% else %>
       <p class="rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-3 text-xs text-gray-500">
-        No active sequences. <%= link_to "Set one up", leads_sequences_path, class: ui(:link) %>
+        No other active sequence to join. <%= link_to "Sequences", leads_sequences_path, class: ui(:link) %>
       </p>
     <% end %>
   <% end %>

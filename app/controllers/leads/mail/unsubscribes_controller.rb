@@ -23,10 +23,10 @@ module Leads
 
       def create
         @lead.unsubscribe
-        if request.format.html? && params["List-Unsubscribe"].blank?
-          render :show
-        else
+        if params["List-Unsubscribe"].present?
           head :ok
+        else
+          redirect_to leads_mail_unsubscribe_path(token: params[:token]), status: :see_other
         end
       end
 

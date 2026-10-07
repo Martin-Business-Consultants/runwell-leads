@@ -39,6 +39,7 @@ RSpec.describe "Leads › email links", type: :request do
     expect(lead.reload).not_to be_unsubscribed
 
     post leads_mail_unsubscribe_path(token: lead.unsubscribe_token)
+    follow_redirect!
     expect(response.body).to include("You’re unsubscribed")
     expect(lead.reload).to be_unsubscribed
     expect(enrollment.reload.status).to eq "stopped"

@@ -1,4 +1,4 @@
-<% @page_title = @sequence.name %>
+<% @page_title = "Edit sequence" %>
 <%= parent_page "Sequences", leads_sequences_path %>
 <% can_write = Current.user.can?("sequences:write") %>
 
@@ -14,5 +14,5 @@
     <% end %>
   <% end %>
 <% end %>
-<%= render "layouts/shared/page_header", title: @page_title, description: @sequence.trigger_label + " · " + pluralize(@sequence.steps.size, "step") %>
+<%= render "layouts/shared/page_header", title: @page_title, description: [ @sequence.trigger_label, pluralize(@sequence.steps.size, "email"), (@sequence.active? ? "sending" : "off") ].join(" · ") %>
 <%= render "leads/sequences/form", sequence: @sequence %>

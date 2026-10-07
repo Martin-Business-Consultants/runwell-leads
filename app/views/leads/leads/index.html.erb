@@ -36,11 +36,11 @@
           </th>
         <% end %>
         <th class="<%= ui(:th) %>">Lead</th>
-        <th class="<%= ui(:th) %>">Stage</th>
+        <th class="<%= ui(:th, "hidden sm:table-cell") %>">Stage</th>
         <th class="<%= ui(:th, "text-right") %>">Score</th>
         <th class="<%= ui(:th, "hidden md:table-cell") %>">Source</th>
         <th class="<%= ui(:th, "hidden md:table-cell") %>">Owner</th>
-        <th class="<%= ui(:th) %>">Last activity</th>
+        <th class="<%= ui(:th, "hidden sm:table-cell") %>">Last activity</th>
       </tr>
     </thead>
     <tbody id="<%= pagination_frame_id_for(:leads_rows, @page.number) %>">
@@ -60,22 +60,23 @@
                   <span class="truncate"><%= lead.email %></span>
                 <% end %>
                 <% if lead.company.present? %>
-                  <span class="truncate"><%= (lead.name.present? ? "· " : "") + lead.company %></span>
+                  <span class="hidden truncate sm:inline"><%= (lead.name.present? ? "· " : "") + lead.company %></span>
                 <% end %>
                 <% if lead.unsubscribed? %>
                   <span class="<%= ui(:badge, :gray) %>">Unsubscribed</span>
                 <% end %>
               </span>
+              <span class="mt-1 sm:hidden"><%= lead_stage_badge lead.stage %></span>
             </div>
             <%= render "layouts/shared/row_links", links: [ [ "View", lead_path(lead) ] ],
                   delete_path: (lead_path(lead) if can_delete), delete_name: lead.display_name,
                   delete_message: "Its timeline, tasks and sequence enrollments go with it. This can’t be undone." %>
           </td>
-          <td class="<%= ui(:td) %>"><%= lead_stage_badge lead.stage %></td>
+          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><%= lead_stage_badge lead.stage %></td>
           <td class="<%= ui(:td, "text-right") %>"><span class="font-medium tabular-nums text-gray-900"><%= lead.score %></span></td>
           <td class="<%= ui(:td, "hidden md:table-cell") %>"><span class="text-xs text-gray-500"><%= lead.source_label %></span></td>
           <td class="<%= ui(:td, "hidden md:table-cell") %>"><span class="text-gray-500"><%= lead.owner&.name || "—" %></span></td>
-          <td class="<%= ui(:td) %>"><span class="whitespace-nowrap text-xs text-gray-500"><%= time_ago_tag(lead.last_activity_at || lead.created_at) %></span></td>
+          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><span class="whitespace-nowrap text-xs text-gray-500"><%= time_ago_tag(lead.last_activity_at || lead.created_at) %></span></td>
         </tr>
       <% end %>
       <%= table_next_page_row :leads_rows, @page, columns: ticks ? 7 : 6 %>

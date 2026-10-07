@@ -17,7 +17,7 @@
         <h2 class="<%= ui(:heading) %>"><%= email.subject.delete_prefix("[Test] ") %></h2>
         <span class="truncate text-xs text-gray-500">From <%= email[:from].to_s %> · to <%= @lead.email %></span>
       </header>
-      <iframe class="block h-96 w-full bg-white" title="Email <%= step.number %>" sandbox="" srcdoc="<%= email.html_part.body.decoded %>"></iframe>
+      <%= tag.iframe class: "block h-96 w-full bg-white", title: "Email #{step.number}", sandbox: "", srcdoc: email.html_part.body.decoded %>
     </section>
   <% end %>
   <% if @sequence.steps.none? %>
