@@ -1,0 +1,81 @@
+<%# locals: (sequence:) %>
+<%# A sequence's editor: its name, then its steps as a list of rows (added,
+    reordered and removed in place; the server reads them back in order,
+    Leads::Sequence::Stepped), with the Save box, the trigger and whether it
+    sends down the side. %>
+<% can_write = Current.user.can?("sequences:write") %>
+<% forms = defined?(::Form) ? Form.ordered.to_a : [] %>
+<% token = "__STEP__" %>
+<%= render "layouts/shared/errors", record: sequence %>
+<%= form_with model: sequence, url: (sequence.persisted? ? leads_sequence_path(sequence) : leads_sequences_path), scope: :sequence,
+      id: "sequence_form", class: "flex flex-col gap-6 lg:flex-row lg:items-start" do |form| %>
+  <%= tag.fieldset class: "flex min-w-0 flex-1 flex-col gap-6", disabled: !can_write do %>
+    <div>
+      <label class="sr-only" for="sequence_name">Name</label>
+      <%= form.text_field :name, required: true, class: "w-full rounded-none border-0 border-b bg-transparent px-0 pb-3 pt-0 text-3xl font-semibold tracking-tight", placeholder: "Name this sequence", autofocus: sequence.new_record? %>
+    </div>
+
+    <section class="<%= ui(:panel) %>">
+      <header class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-5 py-3.5">
+        <h2 class="<%= ui(:heading) %>">Emails</h2>
+        <span class="text-xs text-gray-500">Say {{name}}, {{first_name}}, {{email}} or {{company}} to fill in the lead’s.</span>
+      </header>
+      <div class="flex flex-col gap-3 p-3 sm:p-5" data-controller="sortable-list" data-sortable-list-token-value="<%= token %>">
+        <ol class="flex flex-col gap-2" data-sortable-list-target="list">
+          <% sequence.kept_steps.each_with_index do |step, index| %>
+            <%# herb:key index %>
+            <%= render "leads/sequences/step", step: step, key: "s#{index}", open: step.errors.any? || step.new_record? %>
+          <% end %>
+        </ol>
+        <template data-sortable-list-target="template">
+          <%= render "leads/sequences/step", step: Leads::Step.new(delay_amount: 2, delay_unit: "days"), key: token, open: true %>
+        </template>
+        <div>
+          <button type="button" class="<%= ui(:button, :small) %>" data-action="sortable-list#add">
+            <%= icon_tag "add", class: "size-4" %>
+            <span>Add email</span>
+          </button>
+        </div>
+      </div>
+      <p class="rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-2.5 text-xs text-gray-500">
+        The first email goes its delay after a lead is enrolled; each one after, its delay after the one before. Every email ends with an unsubscribe link.
+      </p>
+    </section>
+  <% end %>
+
+  <aside class="flex shrink-0 flex-col gap-4 lg:w-80">
+    <% extra = capture do %>
+      <%= settings_switch form, :active, "Sending", hint: "Off: nothing goes, and leads wait where they are." %>
+    <% end %>
+    <% lines = sequence.persisted? ? [ [ "everyone", "In it now", sequence.enrollments.active.count.to_s ] ] : [] %>
+    <%= render "layouts/shared/save_box", key: "sequence-save", title: "Sequence", button: (can_write ? (sequence.persisted? ? "Save sequence" : "Create sequence") : nil),
+          extra: extra, lines: lines,
+          trash_name: sequence.name, trash_path: (leads_sequence_path(sequence) if can_write && sequence.persisted?),
+          trash_form: ("sequence_delete_form" if can_write && sequence.persisted?),
+          trash_message: "Its enrollments stop and go with it. The emails it sent stay on the leads’ timelines." %>
+
+    <%= postbox "sequence-trigger", "Starts" do %>
+      <div class="flex flex-col gap-4" data-controller="show-if">
+        <label class="flex flex-col gap-1.5" data-field-name="trigger">
+          <span class="<%= ui(:label) %>">Leads join</span>
+          <%= form.select :trigger, Leads::Sequence::TRIGGERS.invert.to_a, {}, class: "w-full", disabled: !can_write %>
+        </label>
+        <label class="flex flex-col gap-1.5" data-show-if="<%= { field: "trigger", equals: "form" }.to_json %>">
+          <span class="<%= ui(:label) %>">Form</span>
+          <%= form.select :trigger_form_id, forms.map { [ it.title, it.id ] }, { include_blank: "Choose a form" }, class: "w-full", disabled: !can_write %>
+          <span class="<%= ui(:help) %>">Any lead that submits it joins, once.</span>
+        </label>
+        <label class="flex flex-col gap-1.5" data-show-if="<%= { field: "trigger", equals: "stage" }.to_json %>">
+          <span class="<%= ui(:label) %>">Stage</span>
+          <%= form.select :trigger_stage, lead_stage_options, { include_blank: "Choose a stage" }, class: "w-full", disabled: !can_write %>
+          <span class="<%= ui(:help) %>">A lead joins when it reaches this stage, once.</span>
+        </label>
+        <p class="<%= ui(:help) %>">Anyone can also be enrolled by hand from their page, and Settings › Leads can start new leads from a form here.</p>
+      </div>
+    <% end %>
+  </aside>
+<% end %>
+<% if can_write && sequence.persisted? %>
+  <%= render "layouts/shared/delete_form", id: "sequence_delete_form", path: leads_sequence_path(sequence) %>
+<% end %>
+<%= render "content_form/postbox_state" %>

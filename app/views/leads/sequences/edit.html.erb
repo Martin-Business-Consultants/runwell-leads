@@ -1,0 +1,18 @@
+<% @page_title = @sequence.name %>
+<%= parent_page "Sequences", leads_sequences_path %>
+<% can_write = Current.user.can?("sequences:write") %>
+
+<% content_for :page_actions do %>
+  <%= link_to leads_sequence_preview_path(@sequence), class: ui(:button) do %>
+    <%= icon_tag "eye", class: "size-4" %>
+    <span>Preview</span>
+  <% end %>
+  <% if can_write && @sequence.persisted? %>
+    <%= button_to leads_sequence_test_path(@sequence), class: ui(:button), title: "Every step, now, to #{Current.user.email}" do %>
+      <%= icon_tag "email", class: "size-4" %>
+      <span>Send test</span>
+    <% end %>
+  <% end %>
+<% end %>
+<%= render "layouts/shared/page_header", title: @page_title, description: @sequence.trigger_label + " · " + pluralize(@sequence.steps.size, "step") %>
+<%= render "leads/sequences/form", sequence: @sequence %>

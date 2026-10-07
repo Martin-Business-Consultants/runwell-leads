@@ -1,0 +1,26 @@
+<%# locals: (lead:, can_write:) %>
+<%# The score, how far it is from qualifying, and changing it by hand. %>
+<% threshold = Leads::Settings.current.threshold %>
+<%= postbox "lead-score", "Score" do %>
+  <div class="flex items-baseline justify-between gap-3">
+    <span class="text-3xl font-semibold tabular-nums text-gray-900"><%= lead.score %></span>
+    <span class="text-xs text-gray-500">
+      <%= lead.score >= threshold ? "At or over the #{threshold} that qualifies" : "#{threshold - lead.score} to qualify (#{threshold})" %>
+    </span>
+  </div>
+  <% if can_write %>
+    <%= form_with url: lead_score_adjustments_path(lead), scope: :score_adjustment, class: "flex flex-col gap-3" do |form| %>
+      <div class="flex gap-2">
+        <label class="flex w-24 shrink-0 flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Points</span>
+          <%= form.number_field :points, class: "w-full", placeholder: "+5", required: true, step: 1 %>
+        </label>
+        <label class="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Reason</span>
+          <%= form.text_field :reason, class: "w-full", placeholder: "Asked for a quote", required: true %>
+        </label>
+      </div>
+      <div><button type="submit" class="<%= ui(:button, :small) %>">Adjust score</button></div>
+    <% end %>
+  <% end %>
+<% end %>

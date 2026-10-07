@@ -1,0 +1,56 @@
+<%# locals: (lead:, enrollments:, sequences:, can_write:) %>
+<%# The sequences the lead is (or was) in, stopping one, and enrolling it in another. %>
+<%= postbox "lead-sequences", "Sequences", flush: true do %>
+  <% if lead.unsubscribed? %>
+    <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4">
+      <p class="text-gray-600">Unsubscribed <%= time_ago_tag lead.unsubscribed_at %>: no sequence emails it.</p>
+      <% if can_write %>
+        <%= render "layouts/shared/confirm_dialog", label: "Subscribe again", title: "Email #{lead.display_name} again?",
+              message: "Only when they’ve asked to be back on the list.", path: lead_subscription_path(lead), button: "Subscribe again" %>
+      <% end %>
+    </div>
+  <% end %>
+  <% if enrollments.any? %>
+    <ul class="divide-y divide-gray-100">
+      <% enrollments.each do |enrollment| %>
+        <%# herb:key enrollment.id %>
+        <li id="<%= dom_id(enrollment) %>" class="flex items-start justify-between gap-3 px-5 py-3">
+          <div class="flex min-w-0 flex-col gap-1">
+            <span class="flex flex-wrap items-center gap-2">
+              <span class="font-medium text-gray-900"><%= enrollment.sequence.name %></span>
+              <%= status_tag enrollment.status == "completed" ? "Done" : enrollment.status.humanize %>
+            </span>
+            <span class="text-xs text-gray-500">
+              <%= enrollment.progress_label %>
+              <% if enrollment.active? && enrollment.next_send_at %>
+                · next <%= enrollment.next_send_at.future? ? "in #{distance_of_time_in_words(Time.current, enrollment.next_send_at)}" : "any minute" %>
+              <% elsif enrollment.stop_reason.present? %>
+                · <%= enrollment.stop_reason.humanize(capitalize: false) %>
+              <% end %>
+            </span>
+          </div>
+          <% if can_write && enrollment.active? %>
+            <%= button_to "Stop", lead_enrollment_path(lead, enrollment), method: :patch, class: ui(:button, :danger, :small), form_class: "shrink-0" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="px-5 py-4 text-gray-500">Not in a sequence.</p>
+  <% end %>
+  <% if can_write && lead.sendable? %>
+    <% if sequences.any? %>
+      <%= form_with url: lead_enrollments_path(lead), scope: :enrollment, class: "flex items-end gap-2 rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-4" do |form| %>
+        <label class="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Enroll in</span>
+          <%= form.select :sequence_id, sequences.map { [ it.name, it.id ] }, {}, class: "w-full" %>
+        </label>
+        <button type="submit" class="<%= ui(:button, :small, "mb-0.5") %>">Enroll</button>
+      <% end %>
+    <% else %>
+      <p class="rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-3 text-xs text-gray-500">
+        No active sequences. <%= link_to "Set one up", leads_sequences_path, class: ui(:link) %>
+      </p>
+    <% end %>
+  <% end %>
+<% end %>

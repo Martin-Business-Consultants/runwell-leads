@@ -1,0 +1,5 @@
+<% @page_title = "New sequence" %>
+<%= parent_page "Sequences", leads_sequences_path %>
+
+<%= render "layouts/shared/page_header", title: @page_title, description: "Write its emails, say when each goes, and choose what starts it." %>
+<%= render "leads/sequences/form", sequence: @sequence %>

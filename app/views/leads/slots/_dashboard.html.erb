@@ -1,0 +1,35 @@
+<%# locals: () %>
+<%# The dashboard's "Tasks due": the signed-in person's open tasks due today or
+    earlier, overdue first (Cms::Plugins.slot :dashboard). %>
+<% if Current.user&.can?("tasks:read") %>
+  <% due = Leads::Task.pending.assigned_to(Current.user).due_by(Date.current).in_due_order.includes(:lead) %>
+  <% shown = due.limit(6).to_a %>
+  <section class="<%= ui(:panel, "overflow-hidden") %>" aria-labelledby="dashboard_leads_tasks">
+    <header class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-3">
+      <h2 id="dashboard_leads_tasks" class="<%= ui(:heading, "flex items-center gap-2") %>">
+        Tasks due
+        <% if shown.any? %>
+          <span class="<%= ui(:badge, due.overdue.exists? ? :red : :gray) %>"><%= due.count %></span>
+        <% end %>
+      </h2>
+      <%= link_to "All tasks", leads_tasks_path, class: ui(:button, :small) %>
+    </header>
+    <% if shown.any? %>
+      <ul class="divide-y divide-gray-100">
+        <% shown.each do |task| %>
+          <%# herb:key task.id %>
+          <li class="flex items-center gap-3 px-5 py-2.5 text-sm">
+            <%= render "leads/tasks/check", task: task, can_write: Current.user.can?("tasks:write") %>
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate text-gray-900"><%= task.title %></span>
+              <%= link_to task.lead.display_name, lead_path(task.lead, anchor: "tasks"), class: "truncate text-xs text-gray-500 hover:text-gray-900 hover:underline" %>
+            </span>
+            <span class="shrink-0 text-xs"><%= lead_task_due task %></span>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="py-8 text-center text-sm text-gray-500">Nothing due. You’re all caught up.</p>
+    <% end %>
+  </section>
+<% end %>

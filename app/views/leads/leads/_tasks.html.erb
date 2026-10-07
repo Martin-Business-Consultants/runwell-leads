@@ -1,0 +1,50 @@
+<%# locals: (lead:, tasks:) %>
+<%# The lead's follow-ups, open ones first: tick one off, edit it, or add one. %>
+<% can_write = Current.user.can?("tasks:write") %>
+<%= postbox "lead-tasks", "Tasks", flush: true do %>
+  <div id="tasks">
+    <% if tasks.any? %>
+      <ul class="divide-y divide-gray-100">
+        <% tasks.each do |task| %>
+          <%# herb:key task.id %>
+          <li id="<%= dom_id(task) %>" class="flex items-start gap-2.5 px-5 py-3">
+            <%= render "leads/tasks/check", task: task, can_write: can_write %>
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="<%= class_names("break-words", task.done? ? "text-gray-400 line-through" : "text-gray-900") %>"><%= task.title %></span>
+              <span class="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+                <%= lead_task_due task %>
+                <% if task.assignee %>
+                  <span><%= task.assignee.name %></span>
+                <% end %>
+                <% if can_write %>
+                  <%= link_to "Edit", edit_leads_task_path(task, return_to: "lead"), class: "text-gray-500 hover:text-gray-900 hover:underline" %>
+                <% end %>
+              </span>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="px-5 py-4 text-gray-500">No tasks yet.</p>
+    <% end %>
+    <% if can_write %>
+      <%= form_with url: lead_tasks_path(lead), scope: :task, class: "flex flex-col gap-3 rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-4" do |form| %>
+        <label class="flex flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">New task</span>
+          <%= form.text_field :title, class: "w-full", placeholder: "Call back about the quote", required: true, maxlength: 200 %>
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex min-w-0 flex-col gap-1.5">
+            <span class="<%= ui(:label) %>">Due</span>
+            <%= date_input form, :due_on, class: "w-full" %>
+          </label>
+          <label class="flex min-w-0 flex-col gap-1.5">
+            <span class="<%= ui(:label) %>">For</span>
+            <%= form.select :assignee_id, lead_user_options, { include_blank: "Nobody", selected: Current.user.id }, class: "w-full" %>
+          </label>
+        </div>
+        <div><button type="submit" class="<%= ui(:button, :small) %>">Add task</button></div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

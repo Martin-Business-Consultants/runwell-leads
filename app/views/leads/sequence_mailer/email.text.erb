@@ -1,0 +1,12 @@
+<%= @text %>
+
+--
+<% general = Setting.get("general") %>
+<% if general["title"].present? %>
+<%= general["title"] %>
+<% end %>
+<% if @unsubscribe_url %>
+Unsubscribe: <%= @unsubscribe_url %>
+<% else %>
+Unsubscribe: (the link works in a lead's copy)
+<% end %>

@@ -1,0 +1,40 @@
+<%# locals: (lead:, can_write:) %>
+<%# A lead's details, saved by the Lead box's Update (the inputs belong to
+    #lead_form, which sits in the sidebar), and what it last submitted. %>
+<section class="<%= ui(:panel) %>">
+  <h2 class="<%= ui(:heading, "border-b border-gray-200 px-5 py-3.5") %>">Details</h2>
+  <%= fields model: lead, scope: :lead do |form| %>
+    <%= tag.fieldset class: "grid grid-cols-1 gap-5 p-5 sm:grid-cols-2", disabled: !can_write do %>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Name</span>
+        <%= form.text_field :name, form: "lead_form", class: "w-full", autocomplete: "off" %>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Email</span>
+        <%= form.email_field :email, form: "lead_form", class: "w-full", required: true, autocomplete: "off" %>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Phone</span>
+        <%= form.telephone_field :phone, form: "lead_form", class: "w-full", autocomplete: "off" %>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Company</span>
+        <%= form.text_field :company, form: "lead_form", class: "w-full", autocomplete: "off" %>
+      </label>
+    <% end %>
+  <% end %>
+  <% if lead.fields.present? %>
+    <div class="border-t border-gray-200 px-5 py-4">
+      <h3 class="mb-3 text-xs font-medium text-gray-500">Last submitted</h3>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <% lead.fields.each do |name, value| %>
+          <%# herb:key name %>
+          <div class="min-w-0">
+            <dt class="text-xs text-gray-500"><%= name.to_s.humanize %></dt>
+            <dd class="whitespace-pre-line break-words text-gray-900"><%= Array(value).join(", ").presence || "—" %></dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  <% end %>
+</section>

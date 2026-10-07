@@ -1,0 +1,92 @@
+<% @page_title = "Leads" %>
+<% can_write = Current.user.can?("leads:write") %>
+
+<%= render "layouts/shared/page_header", title: "Leads" %>
+<% content_for :settings_aside do %>
+  <%= render "settings/save_box", form: "settings_form", capability: "leads:write" %>
+<% end %>
+
+<%= form_with url: settings_leads_path, id: "settings_form", method: :patch, scope: :settings do |form| %>
+  <%= tag.fieldset class: "space-y-6", disabled: !can_write do %>
+    <section class="<%= ui(:panel, "space-y-5 p-6") %>">
+      <div class="space-y-1">
+        <h2 class="<%= ui(:heading) %>">Scoring</h2>
+        <p class="text-sm text-gray-500">The points a lead earns for what it does. Crossing the threshold moves a new or nurturing lead to qualified. Anyone with leads:write can also adjust a score by hand, with a reason.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-5 sm:grid-cols-4">
+        <% Leads::Settings::POINTS.each_key do |key| %>
+          <%# herb:key key %>
+          <%= settings_field Leads::Settings::POINT_LABELS.fetch(key) do %>
+            <%= number_field_tag "settings[points][#{key}]", @settings.points_for(key), id: "settings_points_#{key}", class: "w-full", step: 1 %>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="max-w-xs">
+        <%= settings_field "Qualifies at", hint: "Points. Default #{Leads::Settings::THRESHOLD}." do %>
+          <%= form.number_field :threshold, value: @settings.threshold, min: 1, step: 1, class: "w-full" %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="<%= ui(:panel, "space-y-5 p-6") %>">
+      <div class="space-y-1">
+        <h2 class="<%= ui(:heading) %>">Sender</h2>
+        <p class="text-sm text-gray-500">Who sequence emails come from. Blank uses Settings › General’s sender, then the Forms plugin’s, then the install’s.</p>
+      </div>
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <%= settings_field "From name" do %>
+          <%= form.text_field :from_name, value: @settings.from_name, class: "w-full", placeholder: "The team at Acme" %>
+        <% end %>
+        <%= settings_field "From address" do %>
+          <%= form.email_field :from_email, value: @settings.from_email, class: "w-full", placeholder: "hello@example.com" %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="<%= ui(:panel, "overflow-hidden") %>">
+      <div class="space-y-1 p-6">
+        <h2 class="<%= ui(:heading) %>">Forms</h2>
+        <p class="text-sm text-gray-500">Which forms’ submissions become leads (those with an email address), and the sequence a new lead from each joins. A sequence can also start itself from a form (Leads › Sequences).</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="<%= ui(:table) %>">
+          <thead>
+            <tr>
+              <th class="<%= ui(:th, "pl-6") %>">Form</th>
+              <th class="<%= ui(:th) %>">Makes leads</th>
+              <th class="<%= ui(:th, "pr-6") %>">New leads join</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @forms.each do |form_record| %>
+              <%# herb:key form_record.id %>
+              <% prefix = "settings[capture][#{form_record.slug}]" %>
+              <tr>
+                <td class="<%= ui(:td, "pl-6") %>">
+                  <span class="flex flex-col">
+                    <span class="font-medium text-gray-900"><%= form_record.title %></span>
+                    <span class="font-mono text-xs text-gray-500"><%= form_record.slug %></span>
+                  </span>
+                </td>
+                <td class="<%= ui(:td) %>">
+                  <label class="switch">
+                    <%= hidden_field_tag "#{prefix}[enabled]", "0", id: nil %>
+                    <%= check_box_tag "#{prefix}[enabled]", "1", @settings.capture?(form_record), id: "capture_#{form_record.id}", class: "switch__input" %>
+                    <span class="switch__btn"></span>
+                    <span class="sr-only">Make leads from <%= form_record.title %></span>
+                  </label>
+                </td>
+                <td class="<%= ui(:td, "pr-6") %>">
+                  <label class="sr-only" for="capture_sequence_<%= form_record.id %>">Sequence for new leads from <%= form_record.title %></label>
+                  <%= select_tag "#{prefix}[sequence_id]", options_for_select(lead_sequence_options(@sequences), @settings.sequence_id_for(form_record)),
+                        include_blank: "None", id: "capture_sequence_#{form_record.id}", class: "w-full min-w-40" %>
+                </td>
+              </tr>
+            <% end %>
+            <%= table_empty_row("No forms yet.", columns: 3) if @forms.none? %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+<% end %>

@@ -1,0 +1,13 @@
+<%# locals: (task:, can_write:) %>
+<%# A task's tick: done (POST its completion) or reopened (DELETE it). %>
+<% check_classes = "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border" %>
+<% if can_write %>
+  <%= button_to leads_task_completion_path(task), method: (task.done? ? :delete : :post),
+        class: class_names(check_classes, "mt-px", task.done? ? "border-green-600 bg-green-600 text-white" : "border-gray-300 bg-white text-transparent hover:border-green-600 hover:text-green-600"),
+        form_class: "shrink-0", title: task.done? ? "Reopen" : "Mark done" do %>
+    <%= icon_tag "check", class: "size-3" %>
+    <span class="sr-only"><%= task.done? ? "Reopen" : "Mark done" %>: <%= task.title %></span>
+  <% end %>
+<% else %>
+  <span class="<%= class_names(check_classes, "mt-px", task.done? ? "border-green-600 bg-green-600 text-white" : "border-gray-300 text-transparent") %>"><%= icon_tag "check", class: "size-3" %></span>
+<% end %>

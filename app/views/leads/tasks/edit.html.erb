@@ -1,0 +1,34 @@
+<% @page_title = "Edit task" %>
+<% back = params[:return_to] == "lead" ? lead_path(@task.lead, anchor: "tasks") : leads_tasks_path %>
+<%= parent_page "Tasks", back %>
+
+<%= render "layouts/shared/page_header", title: @page_title, description: "A follow-up on #{@task.lead.display_name}." %>
+<%= render "layouts/shared/errors", record: @task %>
+
+<%= form_with model: @task, url: leads_task_path(@task), scope: :task, method: :patch, class: "flex flex-col gap-6 lg:flex-row lg:items-start" do |form| %>
+  <%= hidden_field_tag :return_to, params[:return_to] %>
+  <section class="<%= ui(:panel, "min-w-0 flex-1 space-y-5 p-6") %>">
+    <label class="flex flex-col gap-1.5">
+      <span class="<%= ui(:label) %>">Task</span>
+      <%= form.text_field :title, class: "w-full", required: true, maxlength: 200, autofocus: true %>
+    </label>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Due</span>
+        <%= date_input form, :due_on, class: "w-full" %>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">For</span>
+        <%= form.select :assignee_id, lead_user_options, { include_blank: "Nobody" }, class: "w-full" %>
+      </label>
+    </div>
+  </section>
+
+  <aside class="flex shrink-0 flex-col gap-4 lg:w-80">
+    <%= render "layouts/shared/save_box", key: "task-save", title: "Task", button: "Save task",
+          lines: [ [ "person", "Lead", @task.lead.display_name ], [ "check", "Status", @task.done? ? "done" : "open" ] ],
+          trash_name: "this task", trash_path: leads_task_path(@task, return_to: params[:return_to]), trash_form: "task_delete_form" %>
+  </aside>
+<% end %>
+<%= render "layouts/shared/delete_form", id: "task_delete_form", path: leads_task_path(@task, return_to: params[:return_to]) %>
+<%= render "content_form/postbox_state" %>

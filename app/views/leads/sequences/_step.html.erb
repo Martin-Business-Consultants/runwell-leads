@@ -1,0 +1,60 @@
+<%# locals: (step:, key:, open: false) %>
+<%# One email of a sequence as a row of its list, as the content editor draws
+    a block: a header with the drag handle, its delay and subject and the
+    row's moves, opening onto its fields. %>
+<% scope = "sequence[steps][#{key}]" %>
+<% dom = "sequence_steps_#{key}" %>
+<li class="<%= class_names("content-block rounded-lg border bg-white", step.errors.any? ? "border-red-300" : "border-gray-200") %>" data-sortable-list-target="item" data-row-scope="<%= scope %>">
+  <%= content_tag :details, class: "content-row", open: open do %>
+    <summary class="content-row__header flex items-center gap-2 py-1.5 pl-2 pr-1.5">
+      <span class="cursor-grab select-none px-1 text-gray-400" title="Drag to reorder" data-action="mousedown->sortable-list#grab touchstart->sortable-list#grab">⠿</span>
+      <%= icon_tag "caret-down", class: "content-row__toggle size-4 text-gray-400" %>
+      <span class="flex min-w-0 flex-1 flex-col">
+        <span class="truncate text-sm font-medium text-gray-900"><%= step.subject.presence || "New email" %></span>
+        <span class="truncate text-xs text-gray-500"><%= step.persisted? ? step.delay_label + (step.position.to_i.zero? ? " after enrolling" : " after the one before") : "Not saved yet" %></span>
+      </span>
+      <% if step.errors.any? %>
+        <span class="<%= ui(:badge, :red) %>"><%= pluralize(step.errors.count, "error") %></span>
+      <% end %>
+      <%= render "content_form/row_moves", noun: "email" %>
+    </summary>
+    <div class="space-y-4 p-4">
+      <%= hidden_field_tag "#{scope}[id]", step.id, id: nil %>
+      <% if step.errors.any? %>
+        <ul class="list-disc space-y-1 rounded-lg border border-red-200 bg-red-50 py-3 pl-8 pr-4 text-sm text-red-800">
+          <% step.errors.full_messages.each do |message| %>
+            <%# herb:key message %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      <% end %>
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="flex w-24 flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Wait</span>
+          <%= number_field_tag "#{scope}[delay_amount]", step.delay_amount, id: "#{dom}_delay_amount", min: 0, max: 999, class: "w-full" %>
+        </label>
+        <label class="flex w-28 flex-col gap-1.5">
+          <span class="sr-only">Unit</span>
+          <%= select_tag "#{scope}[delay_unit]", options_for_select(Leads::Step::DELAY_UNITS.map { [ it, it ] }, step.delay_unit), id: "#{dom}_delay_unit", class: "w-full" %>
+        </label>
+        <span class="pb-1.5 text-sm text-gray-500">then send</span>
+      </div>
+      <label class="flex flex-col gap-1.5">
+        <span class="<%= ui(:label) %>">Subject</span>
+        <%= text_field_tag "#{scope}[subject]", step.subject, id: "#{dom}_subject", class: "w-full", maxlength: 200, placeholder: "Thanks for getting in touch, {{first_name}}" %>
+      </label>
+      <div class="flex flex-col gap-2">
+        <span class="<%= ui(:label) %>">Body</span>
+        <div class="flex flex-col gap-2" data-controller="markdown-editor" data-markdown-editor-url-value="<%= markdown_preview_path %>">
+          <div class="flex gap-1" role="tablist">
+            <button type="button" class="markdown-editor__tab rounded-md px-2.5 py-1 text-xs font-medium" role="tab" aria-selected="true" data-markdown-editor-target="writeTab" data-action="markdown-editor#write">Write</button>
+            <button type="button" class="markdown-editor__tab rounded-md px-2.5 py-1 text-xs font-medium" role="tab" aria-selected="false" data-markdown-editor-target="previewTab" data-action="markdown-editor#preview">Preview</button>
+          </div>
+          <%= text_area_tag "#{scope}[body]", step.body, id: "#{dom}_body", rows: 8, class: "w-full font-mono leading-relaxed", spellcheck: true,
+                placeholder: "Hi {{first_name}},\n\nMarkdown works: **bold**, [links](https://example.com), lists.", data: { markdown_editor_target: "input" } %>
+          <div class="min-h-40 rounded-md border border-gray-200 px-4 py-3" data-markdown-editor-target="output" hidden></div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</li>

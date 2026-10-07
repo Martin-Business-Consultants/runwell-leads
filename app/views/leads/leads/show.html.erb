@@ -1,0 +1,43 @@
+<% @page_title = @lead.display_name %>
+<%= parent_page "Leads", leads_path %>
+<% can_write = Current.user.can?("leads:write") %>
+<% can_delete = Current.user.can?("leads:delete") %>
+
+<%= render "layouts/shared/page_header", title: @lead.display_name,
+      description: [ (@lead.email if @lead.name.present?), @lead.company.presence, @lead.source_label ].compact.join(" · ") %>
+<%= render "layouts/shared/errors", record: @lead %>
+
+<div class="flex flex-col gap-6 lg:flex-row lg:items-start">
+  <div class="flex min-w-0 flex-1 flex-col gap-6">
+    <%= render "leads/leads/details", lead: @lead, can_write: can_write %>
+    <%= render "leads/leads/timeline", lead: @lead, activities: @activities, can_write: can_write %>
+  </div>
+
+  <aside class="flex shrink-0 flex-col gap-4 lg:w-80">
+    <%= form_with model: @lead, url: lead_path(@lead), scope: :lead, method: :patch, id: "lead_form" do |form| %>
+      <% extra = capture do %>
+        <label class="flex flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Stage</span>
+          <%= form.select :stage, lead_stage_options, {}, class: "w-full", disabled: !can_write %>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="<%= ui(:label) %>">Owner</span>
+          <%= form.select :owner_id, lead_user_options, { include_blank: "No owner" }, class: "w-full", disabled: !can_write %>
+        </label>
+      <% end %>
+      <%= render "layouts/shared/save_box", key: "lead-save", title: "Lead", button: ("Update" if can_write), extra: extra,
+            lines: [ [ "chart", "Score", @lead.score.to_s ], [ "history", "Added", @lead.created_at.to_date.to_fs(:long) ],
+                     [ "email", "Emails", @lead.unsubscribed? ? "unsubscribed" : "subscribed" ] ],
+            trash_name: @lead.display_name, trash_path: (lead_path(@lead) if can_delete), trash_form: ("lead_delete_form" if can_delete),
+            trash_message: "Its timeline, tasks and sequence enrollments go with it. This can’t be undone." %>
+    <% end %>
+
+    <%= render "leads/leads/score", lead: @lead, can_write: can_write %>
+    <%= render "leads/leads/tasks", lead: @lead, tasks: @tasks %>
+    <%= render "leads/leads/enrollments", lead: @lead, enrollments: @enrollments, sequences: @sequences, can_write: can_write %>
+  </aside>
+</div>
+<% if can_delete %>
+  <%= render "layouts/shared/delete_form", id: "lead_delete_form", path: lead_path(@lead) %>
+<% end %>
+<%= render "content_form/postbox_state" %>
