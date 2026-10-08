@@ -15,18 +15,19 @@
     <tbody>
       <% @templates.each do |template| %>
         <%# herb:key template.id %>
-        <tr data-filter-target="item">
-          <td>
-            <details class="leads-template">
-              <summary class="txt-ink font-weight-bold"><%= template.title %></summary>
-              <% if template.subject.present? %>
-                <p class="txt-small margin-none"><strong>Subject:</strong> <%= template.subject %></p>
-              <% end %>
-              <div class="leads-template__body txt-small"><%= rich_text template.body %></div>
-            </details>
+        <tr data-filter-target="item" class="leads-sheet-row" data-controller="dialog" data-dialog-modal-value="true" data-action="keydown.esc->dialog#close:stop">
+          <td data-action="click->dialog#open">
+            <button type="button" class="btn btn--plain txt-ink font-weight-bold leads-sheet-row__open" data-action="dialog#open:stop"><%= template.title %></button>
+            <% if template.subject.present? %>
+              <div class="txt-x-small txt-subtle overflow-ellipsis"><%= template.subject %></div>
+            <% end %>
+            <% text = Leads::Step::Email.plain_text(template.body) %>
+            <%= render "leads/templates/sheet", template: template, subject: template.subject, html: template.body,
+                  copy: template.subject.present? ? "#{template.subject}\n\n#{text}" : text,
+                  edit_path: (edit_leads_template_path(template) if can?(:manage_sequences)) %>
           </td>
-          <td class="txt-subtle txt-nowrap"><%= template.kind_label %></td>
-          <td class="txt-subtle"><%= template.situation %></td>
+          <td class="txt-subtle txt-nowrap" data-action="click->dialog#open"><%= template.kind_label %></td>
+          <td class="txt-subtle" data-action="click->dialog#open"><%= template.situation %></td>
           <% if can?(:manage_sequences) %>
             <%= render "layouts/shared/row_actions", name: template.title, edit_path: edit_leads_template_path(template), delete_path: leads_template_path(template) %>
           <% else %>

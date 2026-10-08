@@ -1,0 +1,24 @@
+<%# locals: (template:, subject:, html:, copy:, edit_path: nil) %>
+<%# A template in a sheet (a modal dialog), opened from its row: the row carries the dialog controller. %>
+<%# Clicks inside stay inside, so the row behind doesn't open it again. %>
+<dialog class="dialog panel fill-white shadow leads-sheet" data-dialog-target="dialog" data-action="click->dialog#loadLazyFrames:stop" aria-label="<%= template.title %>">
+  <header class="leads-sheet__header">
+    <div class="flex flex-column gap-half min-width">
+      <span class="txt-x-small txt-subtle"><%= template.kind_label %><%= " · " + template.situation if template.situation.present? %></span>
+      <h2 class="txt-large font-weight-bold margin-none"><%= template.title %></h2>
+    </div>
+    <button type="button" class="btn txt-small" data-action="dialog#close">Close <kbd class="hide-on-touch">Esc</kbd></button>
+  </header>
+  <% if subject.present? %>
+    <p class="txt-small margin-none"><strong>Subject:</strong> <%= subject %></p>
+  <% end %>
+  <div class="leads-sheet__body"><%= rich_text html %></div>
+  <footer class="flex align-center gap-half">
+    <%= lead_copy_button(copy) %>
+    <% if edit_path %>
+      <%= link_to edit_path, class: "btn txt-small" do %>
+        <%= icon_tag "pencil" %><span>Edit</span>
+      <% end %>
+    <% end %>
+  </footer>
+</dialog>

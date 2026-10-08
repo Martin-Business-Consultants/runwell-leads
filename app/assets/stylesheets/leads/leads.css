@@ -190,18 +190,56 @@
     margin: var(--block-space) 0 var(--block-space-half);
   }
 
-  .leads-template summary {
+  /* A row that opens its sheet (a template): anywhere on it but its own buttons. */
+  .leads-sheet-row,
+  .leads-sheet-row td:not(.data-table__actions) {
     cursor: pointer;
   }
 
-  .leads-template[open] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--block-space-half);
+  .leads-sheet-row:hover .leads-sheet-row__open {
+    text-decoration: underline;
   }
 
-  .leads-template__body {
+  .leads-sheet-row__open {
+    font: inherit;
+    justify-content: flex-start;
+    padding: 0;
+    text-align: start;
+  }
+
+  .leads-sheet {
+    cursor: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--block-space);
+    inline-size: min(42rem, calc(100vw - 2rem));
+    max-block-size: calc(100dvh - 4rem);
+    overflow-y: auto;
+    text-align: start;
+
+    &:not([open]) {
+      display: none;
+    }
+  }
+
+  .leads-sheet__header {
+    align-items: start;
+    display: flex;
+    gap: var(--inline-space);
+    justify-content: space-between;
+  }
+
+  .leads-sheet__body {
     border-inline-start: 2px solid var(--color-ink-lighter);
+    line-height: 1.6;
     padding-inline-start: var(--inline-space);
+
+    p {
+      margin-block: 0 0.75em;
+    }
+
+    p:last-child {
+      margin-block-end: 0;
+    }
   }
 }

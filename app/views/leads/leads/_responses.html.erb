@@ -44,20 +44,15 @@
         <% of_kind.each do |template| %>
           <%# herb:key template.id %>
           <% subject, html, text = template.filled_for(lead) %>
-          <li class="leads-template-row" data-filter-target="item">
-            <details class="leads-template">
-              <summary>
-                <strong><%= template.title %></strong>
-                <% if template.situation.present? %>
-                  <span class="txt-x-small txt-subtle"> · <%= template.situation %></span>
-                <% end %>
-              </summary>
-              <% if subject %>
-                <p class="txt-small margin-none"><strong>Subject:</strong> <%= subject %></p>
+          <li class="leads-sheet-row" data-filter-target="item" data-controller="dialog" data-dialog-modal-value="true"
+              data-action="click->dialog#open keydown.esc->dialog#close:stop">
+            <button type="button" class="btn btn--plain leads-sheet-row__open" data-action="dialog#open:stop">
+              <strong><%= template.title %></strong>
+              <% if template.situation.present? %>
+                <span class="txt-x-small txt-subtle"> · <%= template.situation %></span>
               <% end %>
-              <div class="leads-template__body txt-small"><%= rich_text html %></div>
-              <%= lead_copy_button(subject ? "#{subject}\n\n#{text}" : text) %>
-            </details>
+            </button>
+            <%= render "leads/templates/sheet", template: template, subject: subject, html: html, copy: subject ? "#{subject}\n\n#{text}" : text %>
           </li>
         <% end %>
       </ul>
