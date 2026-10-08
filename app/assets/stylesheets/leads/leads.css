@@ -84,11 +84,13 @@
 }
 
 @layer components {
-  .leads-learning__intro {
+  .leads-page-heading {
     display: flex;
     flex-direction: column;
     gap: var(--block-space-half);
-    padding: var(--block-space) var(--inline-space);
+    margin-block-end: var(--block-space);
+    max-inline-size: 48rem;
+    text-align: start;
   }
 
   .leads-article {
