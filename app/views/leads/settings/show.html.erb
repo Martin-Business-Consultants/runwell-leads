@@ -55,6 +55,19 @@
           <%= form.url_field :thanks_url, class: "input full-width", autocomplete: "off", placeholder: "https://example.com/thanks" %>
           <span class="txt-x-small txt-subtle">Where a form without its own <code>redirect_to</code> sends people. Blank shows a short thank-you here.</span>
         </label>
+        <div class="record-form__toggle">
+          <div class="record-form__toggle-text">
+            <%= form.label :ai_drafts, "Draft replies for each new lead", class: "font-weight-bold" %>
+            <span class="txt-x-small txt-subtle">
+              With the AI plugin, every new lead gets an email, a text and a call plan drafted on its Responses tab, counted in AI’s monthly budget.
+              <%= Leads::Response.available? ? "AI is on." : "AI is off or over budget, so nothing is drafted for now." %>
+            </span>
+          </div>
+          <label class="switch flex-item-no-shrink">
+            <%= form.check_box :ai_drafts, class: "switch__input" %>
+            <span class="switch__btn"></span>
+          </label>
+        </div>
         <button type="submit" class="btn btn--link center">Save</button>
       <% end %>
     </section>

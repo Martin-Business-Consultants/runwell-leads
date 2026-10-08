@@ -1,0 +1,47 @@
+<% @page_title = "Templates" %>
+<%= leads_section_nav :templates %>
+
+<% content_for :index_filters do %>
+  <%= render "layouts/shared/quick_filter", title: "Show…", param: :kind, current: @kind.to_s,
+        options: [ [ "Every kind", "" ] ] + Leads::Template::KINDS.map { |kind, label| [ label.pluralize, kind ] } %>
+<% end %>
+<%= render "layouts/shared/index_toolbar", new_text: "Add a template", new_path: (new_leads_template_path(kind: @kind) if can?(:manage_sequences)) %>
+
+<section class="panel shadow center index-table">
+  <table class="data-table">
+    <thead>
+      <tr><th>Template</th><th>Kind</th><th>When to use it</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @templates.each do |template| %>
+        <%# herb:key template.id %>
+        <tr data-filter-target="item">
+          <td>
+            <details class="leads-template">
+              <summary class="txt-ink font-weight-bold"><%= template.title %></summary>
+              <% if template.subject.present? %>
+                <p class="txt-small margin-none"><strong>Subject:</strong> <%= template.subject %></p>
+              <% end %>
+              <div class="leads-template__body txt-small"><%= rich_text template.body %></div>
+            </details>
+          </td>
+          <td class="txt-subtle txt-nowrap"><%= template.kind_label %></td>
+          <td class="txt-subtle"><%= template.situation %></td>
+          <% if can?(:manage_sequences) %>
+            <%= render "layouts/shared/row_actions", name: template.title, edit_path: edit_leads_template_path(template), delete_path: leads_template_path(template) %>
+          <% else %>
+            <td></td>
+          <% end %>
+        </tr>
+      <% end %>
+      <% if @templates.empty? %>
+        <tr>
+          <td colspan="4" class="txt-subtle txt-small">No templates<%= " of this kind" if @kind %> yet.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+<p class="txt-x-small txt-subtle margin-block">
+  Templates can say <code>{{first_name}}</code>, <code>{{name}}</code>, <code>{{company}}</code>, <code>{{email}}</code>, <code>{{phone}}</code>, <code>{{my_name}}</code> and <code>{{business}}</code>. Each lead’s Responses tab shows them filled in, ready to copy.
+</p>

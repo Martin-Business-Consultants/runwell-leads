@@ -1,0 +1,91 @@
+<%# The replies the AI drafted for a lead, in the frame its Responses tab loads; it reloads itself while
+    a draft is being written. %>
+<% response = @response %>
+<% call = response&.call || {} %>
+<turbo-frame id="lead_responses" class="leads-drafts">
+  <% if response&.working? %>
+    <p class="txt-small txt-subtle margin-none" data-controller="poll" data-poll-interval-value="2">Drafting replies for <%= @lead.display_name %>…</p>
+  <% elsif response&.ready? %>
+    <% if response.summary.present? %>
+      <p class="leads-drafts__summary margin-none"><%= response.summary %></p>
+    <% end %>
+
+    <div class="leads-drafts__grid">
+      <% if @lead.email.present? %>
+        <section class="leads-draft">
+          <header class="leads-draft__header">
+            <h3 class="leads-draft__title"><%= icon_tag "email" %> Email</h3>
+            <%= lead_copy_button("#{response.email_subject}\n\n#{response.email_body}") %>
+          </header>
+          <p class="txt-small margin-none"><strong>Subject:</strong> <%= response.email_subject %></p>
+          <div class="leads-draft__body txt-small"><%= simple_format response.email_body %></div>
+          <%= mail_to @lead.email, "Open in email", subject: response.email_subject, body: response.email_body, class: "btn txt-small" %>
+        </section>
+      <% end %>
+
+      <% if @lead.phone.present? %>
+        <section class="leads-draft">
+          <header class="leads-draft__header">
+            <h3 class="leads-draft__title"><%= icon_tag "comment" %> Text message</h3>
+            <%= lead_copy_button(response.text_message) %>
+          </header>
+          <div class="leads-draft__body txt-small"><%= simple_format response.text_message %></div>
+          <a href="sms:<%= @lead.phone.delete("^0-9+") %>?&body=<%= ERB::Util.url_encode(response.text_message) %>" class="btn txt-small">Open in messages</a>
+        </section>
+      <% end %>
+
+      <section class="leads-draft leads-draft--wide">
+        <header class="leads-draft__header">
+          <h3 class="leads-draft__title"><%= icon_tag "person" %> Call plan</h3>
+          <% if @lead.phone.present? %>
+            <a href="tel:<%= @lead.phone.delete("^0-9+") %>" class="btn txt-small">Call <%= @lead.phone %></a>
+          <% end %>
+        </header>
+        <dl class="leads-call txt-small">
+          <dt>Open with</dt>
+          <dd><%= call["opener"] %></dd>
+          <dt>Ask</dt>
+          <dd>
+            <ul class="margin-none">
+              <% Array(call["questions"]).each_with_index do |question, index| %>
+                <%# herb:key index %>
+                <li><%= question %></li>
+              <% end %>
+            </ul>
+          </dd>
+          <dt>If they say</dt>
+          <dd>
+            <% Array(call["objections"]).each_with_index do |item, index| %>
+              <%# herb:key index %>
+              <p class="margin-none"><strong>“<%= item["objection"] %>”</strong> <%= item["answer"] %></p>
+            <% end %>
+          </dd>
+          <dt>Ask for</dt>
+          <dd><%= call["close"] %></dd>
+        </dl>
+      </section>
+    </div>
+
+    <% if response.next_step.present? %>
+      <p class="leads-drafts__next txt-small margin-none"><strong>Next:</strong> <%= response.next_step %></p>
+    <% end %>
+    <div class="flex align-center gap-half txt-x-small txt-subtle">
+      <span class="flex-item-grow">Drafted by AI <%= time_ago_in_words(response.created_at) %> ago. Read it through and fill in any “…” before you send it.</span>
+      <%= button_to "Draft again", lead_responses_path(@lead), class: "btn txt-small", form: { data: { turbo_frame: "lead_responses" } } %>
+    </div>
+  <% elsif Leads::Response.available? %>
+    <% if response&.failed? %>
+      <p class="txt-small txt-negative margin-none">The AI couldn’t draft this time: <%= response.error %></p>
+    <% end %>
+    <div class="flex align-center gap-half">
+      <p class="txt-small txt-subtle margin-none flex-item-grow">Have AI draft an email, a text and a call plan for <%= @lead.display_name %>, from what they sent and everything on their timeline.</p>
+      <%= button_to lead_responses_path(@lead), class: "btn btn--link txt-small", form: { data: { turbo_frame: "lead_responses" } } do %>
+        <%= icon_tag "ai" %> <span><%= response&.failed? ? "Try again" : "Draft replies" %></span>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="txt-small txt-subtle margin-none">
+      With the AI plugin switched on (Settings › Plugins), every new lead gets an email, a text and a call plan drafted for it here. Until then, use the templates below.
+    </p>
+  <% end %>
+</turbo-frame>

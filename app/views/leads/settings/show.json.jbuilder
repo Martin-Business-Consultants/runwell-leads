@@ -3,4 +3,6 @@ json.capture_url leads_capture_url(key: @settings.capture_key)
 json.points Leads::Settings::POINTS.keys.index_with { @settings.points_for(it) }
 json.threshold @settings.threshold
 json.thanks_url @settings.thanks_url
+json.ai_drafts @settings.ai_drafts
+json.ai_available Leads::Response.available?
 json.form_sources @sources

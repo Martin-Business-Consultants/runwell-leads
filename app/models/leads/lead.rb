@@ -13,6 +13,7 @@ module Leads
     belongs_to :client, class_name: "::Client", optional: true
     has_many :tasks, class_name: "Leads::Task", dependent: :delete_all
     has_many :messages, class_name: "Leads::Message", dependent: :delete_all
+    has_many :responses, class_name: "Leads::Response", dependent: :delete_all
 
     normalizes :email, with: -> { it.to_s.strip.downcase.presence }
 
@@ -28,6 +29,11 @@ module Leads
       where("LOWER(leads_leads.email) LIKE :p OR LOWER(leads_leads.name) LIKE :p OR LOWER(leads_leads.company) LIKE :p", p: pattern)
     }
 
+    # A new lead's replies, drafted by AI while someone gets to it (Settings › Leads).
+    def draft_replies_later(user: nil)
+      Leads::Response.draft_later(self, user: user) if Leads::Settings.current.ai_drafts? && !spam?
+    end
+
     def display_name = name.presence || email.presence || phone.presence || "Lead #{id}"
     def label = display_name
 
@@ -42,6 +48,7 @@ module Leads
     # A lead someone added (or an agent did): its first activity, and the sequences its stage starts.
     def record_creation(user: Current.user)
       record_activity(:created, summary: source == "agent" ? "Added by #{user&.display_name || "an agent"}" : "Added by #{user&.display_name || "hand"}", user: user)
+      draft_replies_later(user: user&.person)
       enroll_in_sequences_for_stage unless stage == "new"
     end
   end

@@ -1,0 +1,41 @@
+<% @page_title = @guide.title %>
+<%= leads_section_nav :guides %>
+
+<% content_for :header do %>
+  <%= parent_page "Learning Center", leads_guides_path %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <p class="txt-subtle margin-none"><%= @guide.summary %></p>
+    <article class="leads-article">
+      <%= render @guide.partial %>
+    </article>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">Put it to work</h2>
+      </header>
+      <p class="txt-small margin-none">Every lead’s <strong>Responses</strong> tab has replies drafted for it, and your <%= link_to "templates", leads_templates_path, class: "txt-link" %> filled in with its details.</p>
+    </section>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">More guides</h2>
+      </header>
+      <ul class="settings__scrollable-list">
+        <% Leads::Guide.all.reject { it.key == @guide.key }.each do |guide| %>
+          <%# herb:key guide.key %>
+          <li class="flex align-center gap-half txt-small" data-filter-target="item">
+            <%= link_to guide.title, leads_guide_path(guide), class: "txt-ink overflow-ellipsis min-width" %>
+            <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
+            <span class="txt-subtle txt-nowrap"><%= guide.minutes %> min</span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  </aside>
+</section>

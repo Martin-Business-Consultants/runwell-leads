@@ -1,0 +1,47 @@
+<% @page_title = "Learning Center" %>
+<%= leads_section_nav :guides %>
+
+<section class="panel shadow center index-table leads-learning">
+  <div class="leads-learning__intro txt-align-start">
+    <p class="txt-small txt-subtle margin-none">
+      Short lessons for turning an enquiry into a client, for anyone who markets more than they sell. Every lead’s Responses tab points to the ones that help at its stage, with replies drafted for it.
+    </p>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr><th>Guide</th><th>Best for</th><th class="data-table__number">Read</th></tr>
+    </thead>
+    <tbody>
+      <% @guides.each do |guide| %>
+        <%# herb:key guide.key %>
+        <tr data-filter-target="item">
+          <td>
+            <%= link_to leads_guide_path(guide), class: "txt-ink" do %>
+              <strong><%= guide.title %></strong>
+              <div class="txt-x-small txt-subtle"><%= guide.summary %></div>
+            <% end %>
+          </td>
+          <td class="txt-subtle txt-nowrap"><%= guide.stages.map(&:humanize).join(", ") %></td>
+          <td class="data-table__number txt-subtle txt-nowrap"><%= guide.minutes %> min</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel shadow center index-table margin-block-start">
+  <table class="data-table">
+    <thead>
+      <tr><th>Templates</th><th class="data-table__number">Ready to use</th></tr>
+    </thead>
+    <tbody>
+      <% Leads::Template::KINDS.each do |kind, label| %>
+        <%# herb:key kind %>
+        <tr data-filter-target="item">
+          <td><%= link_to label.pluralize, leads_templates_path(kind: kind), class: "txt-ink font-weight-bold" %></td>
+          <td class="data-table__number"><%= @counts.fetch(kind, 0) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

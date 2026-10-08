@@ -19,6 +19,7 @@ module Leads::Lead::Capturable
       lead.record_activity(:captured, summary: "Came in from #{source}", user: nil,
         points: Leads::Settings.current.points_for(:capture), data: { source: source, fields: submission.fields })
       lead.enroll_in_triggered(Leads::Sequence.active.triggered_by_capture(submission.source))
+      lead.draft_replies_later if created
       lead
     end
 

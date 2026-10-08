@@ -1,6 +1,9 @@
 <% @page_title = @lead.display_name %>
 <%= leads_section_nav :leads %>
 <% sequences = Leads::Sequence.ordered.includes(:steps).to_a %>
+<% Leads::Template.seed_defaults! %>
+<% tabs = [ record_tab("activity", "Activity"), record_tab("responses", "Responses") ] %>
+<% tab = current_record_tab(tabs, "activity") %>
 
 <% content_for :header do %>
   <%= parent_page "Leads", leads_path %>
@@ -41,126 +44,137 @@
       </div>
     </div>
 
-    <section class="settings__section" id="timeline">
-      <header>
-        <h2 class="divider">Timeline</h2>
-      </header>
-      <%= form_with url: lead_notes_path(@lead), scope: :note, class: "note-composer", data: { controller: "form", turbo_action: "advance" } do |form| %>
-        <%= rich_text_field form, :body, placeholder: "Add a note: what was said or decided…", staff: true %>
-        <div class="note-composer__footer">
-          <button type="submit" class="btn btn--link note-composer__submit">Add note</button>
-        </div>
-      <% end %>
-
-      <ol class="leads-timeline">
-        <% @activities.each do |activity| %>
-          <%# herb:key activity.id %>
-          <li class="leads-timeline__item" data-filter-target="item">
-            <span class="leads-timeline__icon"><%= lead_activity_icon activity.kind %></span>
-            <div class="leads-timeline__body">
-              <div class="flex align-center gap-half">
-                <span class="flex-item-grow"><%= activity.summary %></span>
-                <% points = lead_points(activity.points) %>
-                <% if points %>
-                  <span class="leads-points txt-x-small"><%= points %></span>
-                <% end %>
-              </div>
-              <% if activity.note? %>
-                <div class="leads-timeline__note txt-small"><%= rich_text activity.body %></div>
-              <% end %>
-              <div class="txt-x-small txt-subtle">
-                <%= l activity.created_at, format: :short %><%= " · " + activity.user.display_name if activity.user %>
-              </div>
+    <turbo-frame id="record_tab" target="_top">
+      <div class="record-tabs">
+        <%= render "layouts/shared/record_tabs", tabs: tabs, current: tab %>
+        <div class="record-tabs__panel">
+          <% if tab == "responses" %>
+            <%= render "leads/leads/responses", lead: @lead %>
+          <% else %>
+        <section class="settings__section" id="timeline">
+          <header>
+            <h2 class="divider">Timeline</h2>
+          </header>
+          <%= form_with url: lead_notes_path(@lead), scope: :note, class: "note-composer", data: { controller: "form", turbo_action: "advance" } do |form| %>
+            <%= rich_text_field form, :body, placeholder: "Add a note: what was said or decided…", staff: true %>
+            <div class="note-composer__footer">
+              <button type="submit" class="btn btn--link note-composer__submit">Add note</button>
             </div>
-          </li>
-        <% end %>
-      </ol>
-    </section>
+          <% end %>
 
-    <section class="settings__section" id="tasks">
-      <header>
-        <h2 class="divider">Follow-ups <span class="txt-subtle"><%= @tasks.count { !it.done? } %></span></h2>
-      </header>
-      <% if @tasks.any? %>
-        <ul class="settings__scrollable-list">
-          <% @tasks.each do |task| %>
-            <%# herb:key task.id %>
-            <li class="flex align-center gap-half txt-small" data-filter-target="item">
-              <% if task.done? %>
-                <%= button_to leads_task_completion_path(task), method: :delete, class: "btn btn--circle borderless", title: "Reopen" do %>
-                  <%= icon_tag "check-circle" %><span class="for-screen-reader">Reopen <%= task.title %></span>
-                <% end %>
-              <% else %>
-                <%= button_to leads_task_completion_path(task), class: "btn btn--circle borderless", title: "Mark done" do %>
-                  <%= icon_tag "check" %><span class="for-screen-reader">Mark <%= task.title %> done</span>
-                <% end %>
+          <ol class="leads-timeline">
+            <% @activities.each do |activity| %>
+              <%# herb:key activity.id %>
+              <li class="leads-timeline__item" data-filter-target="item">
+                <span class="leads-timeline__icon"><%= lead_activity_icon activity.kind %></span>
+                <div class="leads-timeline__body">
+                  <div class="flex align-center gap-half">
+                    <span class="flex-item-grow"><%= activity.summary %></span>
+                    <% points = lead_points(activity.points) %>
+                    <% if points %>
+                      <span class="leads-points txt-x-small"><%= points %></span>
+                    <% end %>
+                  </div>
+                  <% if activity.note? %>
+                    <div class="leads-timeline__note txt-small"><%= rich_text activity.body %></div>
+                  <% end %>
+                  <div class="txt-x-small txt-subtle">
+                    <%= l activity.created_at, format: :short %><%= " · " + activity.user.display_name if activity.user %>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ol>
+        </section>
+
+        <section class="settings__section" id="tasks">
+          <header>
+            <h2 class="divider">Follow-ups <span class="txt-subtle"><%= @tasks.count { !it.done? } %></span></h2>
+          </header>
+          <% if @tasks.any? %>
+            <ul class="settings__scrollable-list">
+              <% @tasks.each do |task| %>
+                <%# herb:key task.id %>
+                <li class="flex align-center gap-half txt-small" data-filter-target="item">
+                  <% if task.done? %>
+                    <%= button_to leads_task_completion_path(task), method: :delete, class: "btn btn--circle borderless", title: "Reopen" do %>
+                      <%= icon_tag "check-circle" %><span class="for-screen-reader">Reopen <%= task.title %></span>
+                    <% end %>
+                  <% else %>
+                    <%= button_to leads_task_completion_path(task), class: "btn btn--circle borderless", title: "Mark done" do %>
+                      <%= icon_tag "check" %><span class="for-screen-reader">Mark <%= task.title %> done</span>
+                    <% end %>
+                  <% end %>
+                  <%= link_to task.title, edit_leads_task_path(task), class: class_names("txt-ink overflow-ellipsis min-width", "txt-subtle leads-done": task.done?) %>
+                  <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
+                  <span class="<%= class_names("txt-nowrap txt-x-small", "txt-negative": task.overdue?, "txt-subtle": !task.overdue?) %>"><%= lead_task_due(task, prefix: true) %></span>
+                  <%= person_tag task.assignee, fallback: "Unassigned" %>
+                </li>
               <% end %>
-              <%= link_to task.title, edit_leads_task_path(task), class: class_names("txt-ink overflow-ellipsis min-width", "txt-subtle leads-done": task.done?) %>
-              <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
-              <span class="<%= class_names("txt-nowrap txt-x-small", "txt-negative": task.overdue?, "txt-subtle": !task.overdue?) %>"><%= lead_task_due(task, prefix: true) %></span>
-              <%= person_tag task.assignee, fallback: "Unassigned" %>
-            </li>
+            </ul>
+          <% else %>
+            <p class="txt-subtle txt-small margin-none">Nothing to follow up yet.</p>
           <% end %>
-        </ul>
-      <% else %>
-        <p class="txt-subtle txt-small margin-none">Nothing to follow up yet.</p>
-      <% end %>
 
-      <details class="section-actions">
-        <summary class="btn txt-small"><%= icon_tag "add" %> Add a follow-up</summary>
-        <%= form_with url: lead_tasks_path(@lead), scope: :task, class: "flex flex-column gap txt-small", data: { controller: "form" } do |form| %>
-          <%= form.text_field :title, required: true, class: "input full-width", autocomplete: "off", placeholder: "Call back about the quote…" %>
-          <div class="flex flex-wrap gap-half">
-            <%= form.select :assignee_id, lead_people_options, { selected: Current.user.person.id }, class: "input input--select flex-item-grow", aria: { label: "Who" } %>
-            <%= date_input form, :due_on, class: "input flex-item-grow", aria: { label: "Due" } %>
-          </div>
-          <div class="flex gap-half justify-center">
-            <button type="submit" class="btn btn--link">Add a follow-up</button>
-          </div>
-        <% end %>
-      </details>
-    </section>
+          <details class="section-actions">
+            <summary class="btn txt-small"><%= icon_tag "add" %> Add a follow-up</summary>
+            <%= form_with url: lead_tasks_path(@lead), scope: :task, class: "flex flex-column gap txt-small", data: { controller: "form" } do |form| %>
+              <%= form.text_field :title, required: true, class: "input full-width", autocomplete: "off", placeholder: "Call back about the quote…" %>
+              <div class="flex flex-wrap gap-half">
+                <%= form.select :assignee_id, lead_people_options, { selected: Current.user.person.id }, class: "input input--select flex-item-grow", aria: { label: "Who" } %>
+                <%= date_input form, :due_on, class: "input flex-item-grow", aria: { label: "Due" } %>
+              </div>
+              <div class="flex gap-half justify-center">
+                <button type="submit" class="btn btn--link">Add a follow-up</button>
+              </div>
+            <% end %>
+          </details>
+        </section>
 
-    <section class="settings__section" id="sequences">
-      <header>
-        <h2 class="divider">Email sequences</h2>
-      </header>
-      <% if @enrollments.any? %>
-        <ul class="settings__scrollable-list">
-          <% @enrollments.each do |enrollment| %>
-            <%# herb:key enrollment.id %>
-            <li class="flex align-center gap-half txt-small" data-filter-target="item">
-              <%= link_to enrollment.sequence.name, leads_sequence_path(enrollment.sequence), class: "txt-ink overflow-ellipsis min-width" %>
-              <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
-              <span class="txt-x-small txt-subtle txt-nowrap">
-                <%= enrollment.progress_label %><% if enrollment.active? && enrollment.next_send_at %> · next <%= l enrollment.next_send_at, format: :short %><% end %>
-              </span>
-              <% if enrollment.active? %>
-                <%= button_to "Stop", lead_enrollment_path(@lead, enrollment), method: :patch, class: "btn txt-x-small" %>
-              <% else %>
-                <%= status_tag enrollment.status.humanize %>
+        <section class="settings__section" id="sequences">
+          <header>
+            <h2 class="divider">Email sequences</h2>
+          </header>
+          <% if @enrollments.any? %>
+            <ul class="settings__scrollable-list">
+              <% @enrollments.each do |enrollment| %>
+                <%# herb:key enrollment.id %>
+                <li class="flex align-center gap-half txt-small" data-filter-target="item">
+                  <%= link_to enrollment.sequence.name, leads_sequence_path(enrollment.sequence), class: "txt-ink overflow-ellipsis min-width" %>
+                  <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
+                  <span class="txt-x-small txt-subtle txt-nowrap">
+                    <%= enrollment.progress_label %><% if enrollment.active? && enrollment.next_send_at %> · next <%= l enrollment.next_send_at, format: :short %><% end %>
+                  </span>
+                  <% if enrollment.active? %>
+                    <%= button_to "Stop", lead_enrollment_path(@lead, enrollment), method: :patch, class: "btn txt-x-small" %>
+                  <% else %>
+                    <%= status_tag enrollment.status.humanize %>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
+            </ul>
+          <% else %>
+            <p class="txt-subtle txt-small margin-none">Not in any sequence.</p>
           <% end %>
-        </ul>
-      <% else %>
-        <p class="txt-subtle txt-small margin-none">Not in any sequence.</p>
-      <% end %>
 
-      <% if sequences.any? && @lead.sendable? %>
-        <details class="section-actions">
-          <summary class="btn txt-small"><%= icon_tag "add" %> Start a sequence</summary>
-          <%= form_with url: lead_enrollments_path(@lead), scope: :enrollment, class: "flex flex-wrap gap-half txt-small", data: { controller: "form" } do |form| %>
-            <%= form.select :sequence_id, sequences.map { [ it.active? ? it.name : "#{it.name} (off)", it.id ] }, {}, class: "input input--select flex-item-grow", aria: { label: "Sequence" } %>
-            <button type="submit" class="btn btn--link">Start</button>
+          <% if sequences.any? && @lead.sendable? %>
+            <details class="section-actions">
+              <summary class="btn txt-small"><%= icon_tag "add" %> Start a sequence</summary>
+              <%= form_with url: lead_enrollments_path(@lead), scope: :enrollment, class: "flex flex-wrap gap-half txt-small", data: { controller: "form" } do |form| %>
+                <%= form.select :sequence_id, sequences.map { [ it.active? ? it.name : "#{it.name} (off)", it.id ] }, {}, class: "input input--select flex-item-grow", aria: { label: "Sequence" } %>
+                <button type="submit" class="btn btn--link">Start</button>
+              <% end %>
+            </details>
+          <% elsif @lead.email.blank? %>
+            <p class="txt-subtle txt-x-small margin-none">Add their email address to send them a sequence.</p>
+          <% elsif sequences.none? %>
+            <p class="txt-subtle txt-x-small margin-none"><%= link_to "Write a sequence", leads_sequences_path, class: "txt-link" %> to email leads over time.</p>
           <% end %>
-        </details>
-      <% elsif @lead.email.blank? %>
-        <p class="txt-subtle txt-x-small margin-none">Add their email address to send them a sequence.</p>
-      <% elsif sequences.none? %>
-        <p class="txt-subtle txt-x-small margin-none"><%= link_to "Write a sequence", leads_sequences_path, class: "txt-link" %> to email leads over time.</p>
-      <% end %>
-    </section>
+        </section>
+          <% end %>
+        </div>
+      </div>
+    </turbo-frame>
   </div>
 
   <aside class="settings__panel settings__panel--side panel shadow txt-align-start">

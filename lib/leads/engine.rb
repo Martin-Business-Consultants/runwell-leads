@@ -16,6 +16,8 @@ module Leads
             resources :steps, only: %i[create edit update destroy]
             resource :test, only: :create
           end
+          resources :guides, only: %i[index show], path: "learning"
+          resources :templates, except: :show
           resource :settings, only: %i[show update] do
             resource :capture_key, only: :create
           end
@@ -40,6 +42,7 @@ module Leads
           resource :subscription, only: :create
           resource :conversion, only: :create
           resource :spam, only: %i[create destroy]
+          resource :responses, only: %i[show create]
         end
       end
     end
@@ -60,7 +63,7 @@ module Leads
                      "scored by what they do, followed up with tasks and email sequences, and made a client in one step."
       Runwell::Plugins.nav :leads, "Leads", -> { leads_path }
       Runwell::Plugins.settings :leads, "Leads", -> { leads_settings_path }
-      Runwell::Plugins.permission :leads, :manage_sequences, name: "Write and switch on lead email sequences", roles: %w[owner manager]
+      Runwell::Plugins.permission :leads, :manage_sequences, name: "Write lead email sequences and reply templates", roles: %w[owner manager]
       Runwell::Plugins.stylesheet :leads, "leads/leads"
       Runwell::Plugins.slot :client_aside, :leads, "leads/slots/client_aside"
       Runwell::Plugins.briefing :leads, "Lead follow-ups", partial: "leads/briefing/task",

@@ -42,3 +42,7 @@ Read first, in Runwell's repository:
   with `allow_unauthenticated_access`; unsubscribing works even while the plugin is off.
 - Sends are scheduled per enrollment (`Deliverable#schedule_delivery`), claimed before sending so
   a send never goes twice, and swept nightly.
+- The Learning Center's guides are `Leads::Guide` entries with an article partial each; templates
+  are `Leads::Template` rows (defaults in `Template::Defaults`, made once). AI drafts
+  (`Leads::Response`) go through the AI plugin's `AiChat` with a strict schema, guarded by
+  `Leads::Response.available?`, so Leads works the same without the AI plugin.

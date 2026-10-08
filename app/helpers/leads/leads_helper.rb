@@ -70,6 +70,14 @@ module Leads::LeadsHelper
     JS
   end
 
+  # A copy button for text someone will paste into their email, phone or notes.
+  def lead_copy_button(text, label: "Copy")
+    tag.button type: "button", class: "btn txt-small", data: { controller: "copy-to-clipboard", copy_to_clipboard_content_value: text,
+      copy_to_clipboard_success_class: "btn--reversed", action: "copy-to-clipboard#copy" } do
+      safe_join([ icon_tag("copy-paste"), tag.span(label) ])
+    end
+  end
+
   # The plugin's own pages, in a sidebar beside the page.
   def leads_section_nav(current)
     section_nav "Leads" do
@@ -78,6 +86,9 @@ module Leads::LeadsHelper
         section_nav_link("All leads", leads_path, icon: "person", current: current == :leads),
         section_nav_link("Follow-ups", leads_tasks_path, icon: "pinned", current: current == :tasks),
         section_nav_link("Email sequences", leads_sequences_path, icon: "email", current: current == :sequences),
+        section_nav_heading("Learn"),
+        section_nav_link("Learning Center", leads_guides_path, icon: "lifebuoy", current: current == :guides),
+        section_nav_link("Templates", leads_templates_path, icon: "copy-paste", current: current == :templates),
         (section_nav_link("Settings", leads_settings_path, icon: "settings", current: current == :settings) if can?(:manage_settings))
       ].compact)
     end

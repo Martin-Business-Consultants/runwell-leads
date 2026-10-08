@@ -1,0 +1,29 @@
+<% @page_title = "Add a template" %>
+<%= leads_section_nav :templates %>
+
+<% content_for :header do %>
+  <%= parent_page "Templates", leads_templates_path %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "leads/templates/form", template: @template %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">What makes a good one</h2>
+      </header>
+      <ul class="record-steps txt-small">
+        <li>Short enough to read on a phone in ten seconds.</li>
+        <li>About them: room to mention what they asked about.</li>
+        <li>One question and a clear next step.</li>
+        <li>Leave “…” where the sender must fill something in.</li>
+      </ul>
+      <p class="txt-x-small txt-subtle"><%= link_to "Emails and texts that get replies", leads_guide_path("writing"), class: "txt-link" %></p>
+    </section>
+  </aside>
+</section>

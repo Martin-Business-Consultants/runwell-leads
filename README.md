@@ -50,19 +50,32 @@ Then switch it on in Settings › Plugins. Remove deletes its code and keeps its
 - **Becoming a client**: “Make a client” creates the client (named for the company, else the
   lead) with the lead as its contact, or uses the ones that already exist. The lead becomes a
   customer, and the client’s sidebar shows the lead it came from.
+- **Learning Center**: short guides for people who market more than they sell (answering fast,
+  the first call, discovery questions, qualifying, objections, following up, writing replies,
+  asking for the business), and templates for emails, text messages and calls, with
+  `{{first_name}}`, `{{name}}`, `{{company}}`, `{{email}}`, `{{phone}}`, `{{my_name}}` and
+  `{{business}}`. A starting set is added the first time it’s opened; the team edits them.
+- **Responses tab** on every lead: what to do at its stage with the guides that help, replies
+  drafted for it by the AI plugin (an email, a text, a call plan with questions and likely
+  objections, and the best next step), and the templates filled in for it, each with Copy and
+  open-in-email, messages or phone. With the AI plugin on, every new lead is drafted for as it
+  comes in (Settings › Leads can switch that off), through the AI plugin’s provider and within its
+  monthly budget. Without it, the guides and templates still work.
 - **Privacy**: deleting a lead deletes its timeline, follow-ups, sequences and sent-email records.
 
 ## Permissions
 
 Everyone on staff works leads, follow-ups and enrollments. Deleting a lead takes Runwell’s
-“delete records” (owners and managers). Writing and switching on sequences takes “Write and
-switch on lead email sequences” (owners and managers). Settings › Leads takes “manage settings”.
+“delete records” (owners and managers). Writing sequences and templates takes “Write lead email
+sequences and reply templates” (owners and managers). Settings › Leads takes “manage settings”.
 
 ## Agents
 
 Every page has its tool: `list_leads`, `show_lead`, `create_lead`, `update_lead`, `delete_lead`,
 `add_lead_note`, `add_lead_task`, `list_lead_tasks`, `complete_lead_task`, `adjust_lead_score`,
 `enroll_lead` and `resubscribe_lead` (both ask first, since they email someone),
+`mark_lead_spam`, `draft_lead_responses` and `show_lead_responses`, `list_sales_guides`,
+`show_sales_guide`, the template tools,
 `convert_lead_to_client`, the sequence tools, and the settings. “Following up leads” is offered
 to agents as a workflow.
 

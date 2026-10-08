@@ -1,0 +1,69 @@
+<%# locals: (lead:) %>
+<%# A lead's Responses tab: what to do at its stage, replies the AI drafted for it, and the team's
+    templates filled in with its details, each ready to copy. %>
+<% guides = Leads::Guide.for_stage(lead.stage) %>
+<% templates = Leads::Template.ordered.to_a %>
+<section class="settings__section">
+  <header>
+    <h2 class="divider">Responses</h2>
+  </header>
+
+  <div class="leads-tip">
+    <p class="margin-none"><strong><%= lead.stage.humanize %>:</strong> <%= Leads::Guide::STAGE_TIPS[lead.stage] %></p>
+    <% if guides.any? %>
+      <p class="txt-x-small margin-none">
+        Read:
+        <% guides.each_with_index do |guide, index| %>
+          <%# herb:key guide.key %>
+          <%= link_to guide.title, leads_guide_path(guide), class: "txt-link" %><%= " · " unless index == guides.size - 1 %>
+        <% end %>
+      </p>
+    <% end %>
+  </div>
+</section>
+
+<section class="settings__section">
+  <header>
+    <h2 class="divider">Drafted for <%= lead.display_name %></h2>
+  </header>
+  <turbo-frame id="lead_responses" src="<%= lead_responses_path(lead) %>">
+    <p class="txt-small txt-subtle margin-none">Loading…</p>
+  </turbo-frame>
+</section>
+
+<section class="settings__section">
+  <header>
+    <h2 class="divider">Templates</h2>
+  </header>
+  <% Leads::Template::KINDS.each do |kind, label| %>
+    <%# herb:key kind %>
+    <% of_kind = templates.select { it.kind == kind } %>
+    <% if of_kind.any? %>
+      <h3 class="leads-kind-title"><%= label.pluralize %></h3>
+      <ul class="settings__scrollable-list">
+        <% of_kind.each do |template| %>
+          <%# herb:key template.id %>
+          <% subject, html, text = template.filled_for(lead) %>
+          <li class="leads-template-row" data-filter-target="item">
+            <details class="leads-template">
+              <summary>
+                <strong><%= template.title %></strong>
+                <% if template.situation.present? %>
+                  <span class="txt-x-small txt-subtle"> · <%= template.situation %></span>
+                <% end %>
+              </summary>
+              <% if subject %>
+                <p class="txt-small margin-none"><strong>Subject:</strong> <%= subject %></p>
+              <% end %>
+              <div class="leads-template__body txt-small"><%= rich_text html %></div>
+              <%= lead_copy_button(subject ? "#{subject}\n\n#{text}" : text) %>
+            </details>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+  <p class="txt-x-small txt-subtle margin-none">
+    <%= link_to "Change the templates", leads_templates_path, class: "txt-link" %> · <%= link_to "Learning Center", leads_guides_path, class: "txt-link" %>
+  </p>
+</section>

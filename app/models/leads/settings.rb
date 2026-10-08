@@ -24,7 +24,8 @@ module Leads
     def revise(params)
       params = params.to_h.stringify_keys
       update(points: POINTS.keys.index_with { Integer(params.dig("points", it).to_s, exception: false) || points_for(it) },
-        threshold: params.fetch("threshold", threshold), thanks_url: params.fetch("thanks_url", thanks_url).to_s.strip.presence)
+        threshold: params.fetch("threshold", threshold), thanks_url: params.fetch("thanks_url", thanks_url).to_s.strip.presence,
+        ai_drafts: params.fetch("ai_drafts", ai_drafts))
     end
 
     # A new key: forms still posting the old one stop making leads.
