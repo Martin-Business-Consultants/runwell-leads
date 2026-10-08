@@ -1,19 +1,16 @@
-# frozen_string_literal: true
-
-# A note on a lead's timeline.
 module Leads
-  class NotesController < ::ApplicationController
-    include PluginGated
-    plugin :leads
-    include LeadScoped
+  class NotesController < ApplicationController
+    allow_staff
+    agent_tool :add_lead_note, on: :create, title: "Add a note to a lead",
+      description: "What was said or decided, on the lead's timeline.", params: { note: { body: "text!" } }
 
-    requires_capability "leads:write", only: :create
+    before_action :set_lead
 
     def create
-      @lead.add_note(params.require(:note).permit(:body)[:body])
-      redirect_to lead_path(@lead, anchor: "timeline"), notice: "Note added"
+      @lead.add_note(params.expect(note: :body)[:body])
+      redirect_to lead_path(@lead), notice: "Note added."
     rescue ArgumentError => e
-      redirect_to lead_path(@lead, anchor: "timeline"), alert: e.message
+      redirect_to lead_path(@lead), alert: e.message
     end
   end
 end

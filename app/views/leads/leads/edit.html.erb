@@ -1,0 +1,29 @@
+<% @page_title = "Edit #{@lead.name_was.presence || @lead.email_was}" %>
+<%= leads_section_nav :leads %>
+
+<% content_for :header do %>
+  <%= parent_page @lead.name_was.presence || @lead.email_was, lead_path(@lead) %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "leads/leads/form", lead: @lead %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section flex flex-column gap-half">
+      <header>
+        <h2 class="divider">Details</h2>
+      </header>
+      <dl class="record-facts">
+        <dt>Stage</dt><dd><%= lead_stage_tag @lead.stage_was %></dd>
+        <dt>Score</dt><dd><%= @lead.score %></dd>
+        <dt>Source</dt><dd><%= @lead.source_text %></dd>
+        <dt>Since</dt><dd><%= l @lead.created_at.to_date, format: :long %></dd>
+      </dl>
+      <p class="txt-x-small txt-subtle margin-none">Moving a lead to customer or lost stops its email sequences.</p>
+    </section>
+  </aside>
+</section>

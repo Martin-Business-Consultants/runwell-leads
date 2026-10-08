@@ -1,33 +1,8 @@
-<% general = Setting.get("general") %>
-<% address = [general["address_line1"], general["city"], general["state"], general["zip"]].compact_blank.join(", ") %>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:24px 0;">
-  <tr>
-    <td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e7e5e4;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
-        <tr>
-          <td style="padding:28px 32px;font-size:15px;line-height:1.6;">
-            <%= sanitize @body_html, tags: Markdown::TAGS, attributes: Markdown::ATTRIBUTES %>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:16px 32px 24px;border-top:1px solid #e7e5e4;font-size:12px;line-height:1.5;color:#78716c;">
-            <% if general["title"].present? %>
-              <p style="margin:0 0 4px;"><%= general["title"] %><%= " · " + address if address.present? %></p>
-            <% end %>
-            <p style="margin:0;">
-              You’re getting this because you got in touch with us.
-              <% if @unsubscribe_url %>
-                <%= link_to "Unsubscribe", @unsubscribe_url, style: "color:#57534e;text-decoration:underline;" %>
-              <% else %>
-                <span style="text-decoration:underline;">Unsubscribe</span> (the link works in a lead’s copy)
-              <% end %>
-            </p>
-          </td>
-        </tr>
-      </table>
-      <% if @open_url %>
-        <%= image_tag @open_url, width: 1, height: 1, alt: "", style: "display:block;width:1px;height:1px;border:0;" %>
-      <% end %>
-    </td>
-  </tr>
-</table>
+<% content_for :reason, "You’re getting this because you got in touch with us." %>
+<%= @body_html %>
+<% if @unsubscribe_url %>
+  <%= mail_small do %>
+    Rather not hear from us? <%= link_to "Unsubscribe", @unsubscribe_url, style: "color:#8a8c93;" %>.
+  <% end %>
+  <img src="<%= @open_url %>" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;">
+<% end %>

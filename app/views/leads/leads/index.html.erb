@@ -1,87 +1,65 @@
 <% @page_title = "Leads" %>
-<% can_write = Current.user.can?("leads:write") %>
-<% can_delete = Current.user.can?("leads:delete") %>
-<% ticks = can_write || can_delete %>
-<% filtered = @stage || @owner || search_term %>
+<%= leads_section_nav :leads %>
 
-<% content_for :page_actions do %>
-  <% if can_write %>
-    <%= render "layouts/shared/new_link", text: "Add lead", path: new_lead_path %>
-  <% end %>
+<% content_for :index_filters do %>
+  <%= render "layouts/shared/quick_filter", title: "Show…", param: :stage, current: @stage, options: Leads::Lead.filter_options %>
+  <%= render "layouts/shared/quick_filter", title: "Whose…", param: :owner, current: @owner.to_s, options: lead_owner_filter_options %>
+  <form action="<%= leads_path %>" method="get" class="leads-search">
+    <input type="hidden" name="stage" value="<%= @stage %>">
+    <input type="search" name="q" value="<%= params[:q] %>" class="input txt-x-small" placeholder="Name, email or company" aria-label="Search leads" autocomplete="off">
+  </form>
 <% end %>
-<%= render "layouts/shared/page_header", title: @page_title, description: "Everyone who got in touch through a form, was added by hand or came in over the API, most recently active first." %>
+<%= render "layouts/shared/index_toolbar", new_text: "Add a lead", new_path: new_lead_path %>
 
-<%= render "layouts/shared/status_links", param: :stage, current: @stage.to_s,
-      options: [ [ "All", nil, @stage_counts.values.sum ] ] + Leads::Lead::STAGES.map { |stage| [ stage.humanize, stage, @stage_counts[stage].to_i ] } %>
-
-<div class="mb-4 flex flex-wrap gap-2">
-  <%= render "layouts/shared/quick_filter", title: "Owner", param: :owner, current: @owner.to_s,
-        options: [ [ "Any owner", "" ], [ "Mine", "me" ], [ "No owner", "none" ] ] %>
-</div>
-
-<%= render "layouts/shared/bulk_actions", id: "leads_bulk", noun: "lead",
-      status_path: (leads_bulk_stage_changes_path if can_write), statuses: Leads::Lead::STAGES,
-      deletion_path: (leads_bulk_deletions_path if can_delete),
-      delete_message: "Their timelines, tasks and sequence enrollments go with them. This can’t be undone." %>
-
-<section class="<%= ui(:panel, "overflow-x-auto") %>" data-controller="select-all">
-  <table class="data-table <%= ui(:table) %>" data-controller="pagination" data-pagination-paginate-on-intersection-value="true" data-pagination-discard-frame-value="true">
-    <thead>
-      <tr>
-        <% if ticks %>
-          <th class="<%= ui(:th, "data-table__check") %>">
-            <% if @leads.any? %>
-              <input type="checkbox" aria-label="Select every lead" data-select-all-target="all" data-action="select-all#toggle">
-            <% end %>
-          </th>
-        <% end %>
-        <th class="<%= ui(:th) %>">Lead</th>
-        <th class="<%= ui(:th, "hidden sm:table-cell") %>">Stage</th>
-        <th class="<%= ui(:th, "text-right") %>">Score</th>
-        <th class="<%= ui(:th, "hidden md:table-cell") %>">Source</th>
-        <th class="<%= ui(:th, "hidden md:table-cell") %>">Owner</th>
-        <th class="<%= ui(:th, "hidden sm:table-cell") %>">Last activity</th>
-      </tr>
-    </thead>
-    <tbody id="<%= pagination_frame_id_for(:leads_rows, @page.number) %>">
-      <% @leads.each do |lead| %>
-        <%# herb:key lead.id %>
-        <tr id="<%= dom_id(lead) %>" class="hover:bg-gray-50" data-filter-target="item">
-          <% if ticks %>
-            <td class="<%= ui(:td, "data-table__check") %>">
-              <input type="checkbox" data-select-all-target="box" data-action="select-all#sync" name="ids[]" value="<%= lead.id %>" form="leads_bulk" aria-label="Select <%= lead.display_name %>">
+<% if @leads.any? %>
+  <section class="panel shadow center index-table">
+    <table class="data-table">
+      <thead>
+        <tr><th>Lead</th><th>Stage</th><th class="data-table__number">Score</th><th>Owner</th><th>Last active</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @leads.each do |lead| %>
+          <%# herb:key lead.id %>
+          <tr data-filter-target="item">
+            <td>
+              <%= link_to lead_path(lead), class: "txt-ink" do %>
+                <strong><%= lead.display_name %></strong>
+                <div class="txt-x-small txt-subtle overflow-ellipsis"><%= [ (lead.email if lead.name.present?), lead.company ].compact_blank.join(" · ") %></div>
+              <% end %>
             </td>
-          <% end %>
-          <td class="<%= ui(:td) %>">
-            <div class="flex min-w-0 flex-col">
-              <%= link_to lead.display_name, lead_path(lead), class: "truncate font-medium text-gray-900 hover:underline" %>
-              <span class="flex min-w-0 items-center gap-1.5 text-xs text-gray-500">
-                <% if lead.name.present? %>
-                  <span class="truncate"><%= lead.email %></span>
-                <% end %>
-                <% if lead.company.present? %>
-                  <span class="hidden truncate sm:inline"><%= (lead.name.present? ? "· " : "") + lead.company %></span>
-                <% end %>
-                <% if lead.unsubscribed? %>
-                  <span class="<%= ui(:badge, :gray) %>">Unsubscribed</span>
-                <% end %>
-              </span>
-              <span class="mt-1 sm:hidden"><%= lead_stage_badge lead.stage %></span>
-            </div>
-            <%= render "layouts/shared/row_links", links: [ [ "View", lead_path(lead) ] ],
-                  delete_path: (lead_path(lead) if can_delete), delete_name: lead.display_name,
-                  delete_message: "Its timeline, tasks and sequence enrollments go with it. This can’t be undone." %>
-          </td>
-          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><%= lead_stage_badge lead.stage %></td>
-          <td class="<%= ui(:td, "text-right") %>"><span class="font-medium tabular-nums text-gray-900"><%= lead.score %></span></td>
-          <td class="<%= ui(:td, "hidden md:table-cell") %>"><span class="text-xs text-gray-500"><%= lead.source_label %></span></td>
-          <td class="<%= ui(:td, "hidden md:table-cell") %>"><span class="text-gray-500"><%= lead.owner&.name || "—" %></span></td>
-          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><span class="whitespace-nowrap text-xs text-gray-500"><%= time_ago_tag(lead.last_activity_at || lead.created_at) %></span></td>
-        </tr>
+            <td><%= lead_stage_tag lead.stage %></td>
+            <td class="data-table__number"><%= lead.score %></td>
+            <td><%= person_tag lead.owner, fallback: "Unassigned" %></td>
+            <td class="txt-subtle txt-nowrap"><%= time_ago_in_words(lead.last_activity_at || lead.created_at) %> ago</td>
+            <%= render "layouts/shared/row_actions", name: lead.display_name, edit_path: edit_lead_path(lead), delete_path: lead_path(lead),
+                  delete_message: "This forgets the lead with its timeline, tasks and the emails sent to it." %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+  <% if @page > 1 || @more %>
+    <nav class="flex gap-half justify-center margin-block txt-small" aria-label="Pages">
+      <% if @page > 1 %>
+        <%= link_to "Newer", url_for(request.query_parameters.merge("page" => @page - 1)), class: "btn txt-small" %>
       <% end %>
-      <%= table_next_page_row :leads_rows, @page, columns: ticks ? 7 : 6 %>
-      <%= table_empty_row(filtered ? "No leads match." : "No leads yet. They arrive with the first form submission that has an email address.",
-            columns: ticks ? 7 : 6, link: ([ "Show all", leads_path ] if filtered)) if @leads.none? %>
-    </tbody>
-  </table>
-</section>
+      <% if @more %>
+        <%= link_to "Older", url_for(request.query_parameters.merge("page" => @page + 1)), class: "btn txt-small" %>
+      <% end %>
+    </nav>
+  <% end %>
+<% elsif Leads::Lead.exists? %>
+  <div class="blank-slate">
+    No leads match.
+    <%= link_to "Show all", leads_path(stage: "all"), class: "txt-link" %>
+  </div>
+<% else %>
+  <div class="panel panel--centered flex flex-column gap-half">
+    <p class="txt-medium">No leads yet.</p>
+    <p class="txt-small txt-subtle margin-none">They come in from your website’s forms (Settings › Leads shows how), or add one yourself.</p>
+    <%= link_to new_lead_path, class: "btn btn--link center" do %>
+      <span>Add your first lead</span>
+      <%= icon_tag "arrow-right" %>
+    <% end %>
+  </div>
+<% end %>

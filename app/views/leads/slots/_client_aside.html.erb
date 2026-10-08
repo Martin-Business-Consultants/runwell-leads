@@ -1,0 +1,16 @@
+<%# locals: (client:) %>
+<%# The lead this client was won from, in its sidebar (the :client_aside slot). Nothing for the rest. %>
+<% lead = client.won_lead %>
+<% if lead %>
+  <section class="settings__section flex flex-column gap-half">
+    <header>
+      <h2 class="divider">From a lead</h2>
+    </header>
+    <dl class="record-facts">
+      <dt>Lead</dt><dd><%= link_to lead.display_name, lead_path(lead), class: "txt-link" %></dd>
+      <dt>Source</dt><dd><%= lead.source_text %></dd>
+      <dt>Score</dt><dd><%= lead.score %></dd>
+      <dt>First seen</dt><dd><%= l lead.created_at.to_date, format: :long %></dd>
+    </dl>
+  </section>
+<% end %>

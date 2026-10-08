@@ -1,18 +1,19 @@
-<% @page_title = "Edit sequence" %>
-<%= parent_page "Sequences", leads_sequences_path %>
-<% can_write = Current.user.can?("sequences:write") %>
+<% @page_title = "Edit #{@sequence.name_was}" %>
+<%= leads_section_nav :sequences %>
 
-<% content_for :page_actions do %>
-  <%= link_to leads_sequence_preview_path(@sequence), class: ui(:button) do %>
-    <%= icon_tag "eye", class: "size-4" %>
-    <span>Preview</span>
-  <% end %>
-  <% if can_write && @sequence.persisted? %>
-    <%= button_to leads_sequence_test_path(@sequence), class: ui(:button), title: "Every step, now, to #{Current.user.email}" do %>
-      <%= icon_tag "email", class: "size-4" %>
-      <span>Send test</span>
-    <% end %>
-  <% end %>
+<% content_for :header do %>
+  <%= parent_page @sequence.name_was, leads_sequence_path(@sequence) %>
 <% end %>
-<%= render "layouts/shared/page_header", title: @page_title, description: [ @sequence.trigger_label, pluralize(@sequence.steps.size, "email"), (@sequence.active? ? "sending" : "off") ].join(" · ") %>
-<%= render "leads/sequences/form", sequence: @sequence %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "leads/sequences/form", sequence: @sequence %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <%= render "layouts/shared/confirm", trigger: "Delete this sequence", title: "Delete #{@sequence.name_was}?",
+          body: "Leads in it stop getting its emails. What was sent stays on their timelines.", button: "Delete sequence", path: leads_sequence_path(@sequence) %>
+  </aside>
+</section>

@@ -1,10 +1,15 @@
-# frozen_string_literal: true
-
-# Sends every enrollment's due step (Leads::Enrollment::Deliverable).
+# Sends one enrollment's email when it's due, or (with no id, nightly) every enrollment's that is
+# (Leads::Enrollment::Deliverable). Nothing goes while the plugin is switched off.
 class Leads::Enrollment::DeliveryJob < ApplicationJob
   queue_as :default
 
-  def perform
-    Leads::Enrollment.deliver_due_now
+  def perform(enrollment_id = nil)
+    return unless Runwell::Plugins.enabled?(:leads)
+
+    if enrollment_id
+      Leads::Enrollment.find_by(id: enrollment_id)&.deliver_now
+    else
+      Leads::Enrollment.deliver_due_now
+    end
   end
 end

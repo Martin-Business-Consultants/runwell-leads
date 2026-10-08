@@ -1,0 +1,62 @@
+<% @page_title = "Leads" %>
+<%= render "settings/header", current: :leads %>
+<% capture_url = leads_capture_url(key: @settings.capture_key) %>
+
+<section class="settings">
+  <div class="settings__panel panel shadow txt-align-start">
+    <section class="settings__section flex flex-column gap">
+      <header>
+        <h2 class="divider">Leads from your website</h2>
+      </header>
+      <p class="txt-small margin-none">
+        Point any form on your website at this address. Each one that gives an email address becomes a lead (or updates the one it already is), with everything else it sent kept on the lead.
+      </p>
+      <%= code_block capture_url, language: "bash" %>
+      <p class="txt-small txt-subtle margin-none">
+        <code>email</code> is all it needs. <code>name</code> (or <code>first_name</code> and <code>last_name</code>), <code>phone</code> and <code>company</code> fill in the lead.
+        <code>source</code> names the form, for sequences that start from one form. <code>redirect_to</code> is where people go after; without it, the thanks page below, else ours.
+        Keep the hidden <code>website_url</code> field empty: bots fill it in, and what they send is dropped.
+      </p>
+      <details class="txt-small">
+        <summary class="txt-subtle">An HTML form</summary>
+        <%= code_block leads_capture_form_snippet(capture_url), language: "html" %>
+      </details>
+      <details class="txt-small">
+        <summary class="txt-subtle">From a script (JSON)</summary>
+        <%= code_block leads_capture_fetch_snippet(capture_url), language: "javascript" %>
+      </details>
+      <% if @sources.any? %>
+        <p class="txt-x-small txt-subtle margin-none">Forms seen so far: <%= @sources.join(", ") %>.</p>
+      <% end %>
+      <%= render "layouts/shared/confirm", trigger: "Make a new key", title: "Make a new capture key?",
+            body: "Forms still posting the old key stop making leads until you put the new one in them.",
+            button: "Make a new key", path: leads_settings_capture_key_path, method: :post, icon: "refresh" %>
+    </section>
+
+    <section class="settings__section flex flex-column gap">
+      <header>
+        <h2 class="divider">Scoring</h2>
+      </header>
+      <p class="txt-small txt-subtle margin-none">Points a lead earns for what it does. A new or nurturing lead whose score reaches the threshold is qualified. The first open and the first click of each email count.</p>
+      <%= form_with model: @settings, url: leads_settings_path, method: :patch, scope: :settings, class: "flex flex-column gap txt-small" do |form| %>
+        <% Leads::Settings::POINT_LABELS.each do |key, label| %>
+          <%# herb:key key %>
+          <label class="flex align-center gap-half">
+            <span class="flex-item-grow"><%= label %></span>
+            <input type="number" name="settings[points][<%= key %>]" value="<%= @settings.points_for(key) %>" class="input leads-points-input" min="-100" max="1000" autocomplete="off">
+          </label>
+        <% end %>
+        <label class="flex align-center gap-half">
+          <span class="flex-item-grow font-weight-bold">Qualifies at</span>
+          <%= form.number_field :threshold, min: 1, class: "input leads-points-input" %>
+        </label>
+        <label class="flex flex-column gap-half">
+          <span class="font-weight-bold">Thanks page</span>
+          <%= form.url_field :thanks_url, class: "input full-width", autocomplete: "off", placeholder: "https://example.com/thanks" %>
+          <span class="txt-x-small txt-subtle">Where a form without its own <code>redirect_to</code> sends people. Blank shows a short thank-you here.</span>
+        </label>
+        <button type="submit" class="btn btn--link center">Save</button>
+      <% end %>
+    </section>
+  </div>
+</section>

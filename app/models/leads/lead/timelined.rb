@@ -1,9 +1,6 @@
-# frozen_string_literal: true
-
-# A lead's timeline: everything that happened to it, newest first
-# (Leads::Activity). Recording an activity is how the rest of the lead's
-# verbs leave a trace: it adds the activity's points to the score (Scored)
-# and marks the lead active now.
+# A lead's timeline: everything that happened to it, newest first (Leads::Activity). Recording an
+# activity is how the lead's other verbs leave a trace: it adds the activity's points to the score
+# (Scored) and marks the lead active now.
 module Leads::Lead::Timelined
   extend ActiveSupport::Concern
 
@@ -21,12 +18,13 @@ module Leads::Lead::Timelined
     activity
   end
 
-  # A note someone wrote on the lead. Worth the "note" points (Settings › Leads).
+  # A note someone wrote on the lead (rich text), worth the "note" points in Settings › Leads.
   def add_note(body, user: Current.user)
-    text = body.to_s.strip
-    raise ArgumentError, "A note needs some text" if text.empty?
+    html = body.to_s.strip
+    text = Leads::Step::Email.plain_text(html)
+    raise ArgumentError, "A note needs some text" if text.blank?
 
-    record_activity(:note, summary: text.truncate(120), body: text, user: user,
+    record_activity(:note, summary: text.squish.truncate(120), body: html, user: user,
       points: Leads::Settings.current.points_for(:note))
   end
 end

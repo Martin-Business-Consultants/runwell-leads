@@ -1,118 +1,78 @@
-# frozen_string_literal: true
-
 module Leads
-  # A CMS plugin (docs/plugins.md): it extends the core only through
-  # Cms::Plugins and "<event>.cms" notifications, and the core never names it.
+  # A Runwell plugin: it owns its tables (leads_*), points at core records by id, and reaches the
+  # core only through the plugin contract (docs/plugin-contract.md in Runwell). Remove it and
+  # Runwell runs as before.
   class Engine < ::Rails::Engine
-    initializer "leads.migrations" do |app|
-      config.paths["db/migrate"].expanded.each { |path| app.config.paths["db/migrate"] << path }
-    end
-
-    # Routes join the app's own route set, so the core layout's helpers work
-    # on the plugin's pages.
+    # Routes join the app's route set (as leads_*), so the core layout's helpers work on the
+    # plugin's pages.
     initializer "leads.routes" do |app|
       app.routes.append do
-        # Before `resources :leads`, so /leads/sequences isn't read as a lead.
+        # Before `resources :leads`, so /leads/tasks isn't read as a lead.
         scope "leads", module: "leads", as: "leads" do
-          resources :sequences, only: [:index, :new, :create, :edit, :update, :destroy] do
-            resource :preview, only: :show, controller: "sequence_previews"
-            resource :test, only: :create, controller: "sequence_tests"
+          resources :tasks, only: %i[index edit update destroy] do
+            resource :completion, only: %i[create destroy]
           end
-          resources :tasks, only: [:index, :edit, :update, :destroy] do
-            resource :completion, only: [:create, :destroy], controller: "task_completions"
+          resources :sequences do
+            resources :steps, only: %i[create edit update destroy]
+            resource :test, only: :create
           end
-          resources :bulk_stage_changes, only: :create
-          resources :bulk_deletions, only: :create
+          resource :settings, only: %i[show update] do
+            resource :capture_key, only: :create
+          end
 
-          # What an email's links reach, public and signed (Leads::Mail::…).
-          scope "mail/:token", module: "mail", as: "mail" do
+          # A website's form posts here (public, by the install's capture key).
+          post "capture/:key", to: "captures#create", as: :capture
+          match "capture/:key", to: "captures#preflight", via: :options, as: :capture_preflight
+
+          # What an email's links reach, public and signed (Leads::Tracking::…).
+          scope "mail/:token", module: "tracking", as: "mail" do
             resource :open, only: :show
             resource :click, only: :show
-            resource :unsubscribe, only: [:show, :create]
+            resource :unsubscribe, only: %i[show create]
           end
         end
 
-        resources :leads, module: "leads", only: [:index, :new, :create, :show, :update, :destroy], constraints: {id: /\d+/} do
+        resources :leads, module: "leads", only: %i[index new create show edit update destroy], constraints: { id: /\d+/ } do
           resources :notes, only: :create
           resources :tasks, only: :create
           resources :score_adjustments, only: :create
-          resources :enrollments, only: [:create, :update]
+          resources :enrollments, only: %i[create update]
           resource :subscription, only: :create
-        end
-
-        namespace :settings do
-          resource :leads, only: [:show, :update], controller: "leads"
-        end
-
-        scope "api", module: "api/leads", as: "api", defaults: {format: :json} do
-          resources :leads, only: [:index, :show, :create, :update, :destroy], constraints: {id: /\d+/} do
-            resources :notes, only: :create
-            resources :tasks, only: [:index, :create]
-            resources :score_adjustments, only: :create
-            resources :enrollments, only: :create
-          end
-          get "leads/sequences", to: "sequences#index", as: :leads_sequences
-          get "leads/tasks", to: "tasks#index", as: :leads_tasks
+          resource :conversion, only: :create
         end
       end
     end
 
-    # A form submission becomes (or updates) its lead, in a job so the
-    # visitor's request never waits on it.
-    initializer "leads.events" do
-      ActiveSupport::Notifications.subscribe("submission.created.cms") do |event|
-        next unless Cms::Plugins.enabled?(:leads)
+    initializer "leads.helpers" do
+      ActiveSupport.on_load(:action_view) { include Leads::LeadsHelper }
+    end
 
-        id = event.payload.dig(:data, :id)
-        Leads::Lead.capture_later(id) if id
-      end
+    # The lead a client was won from, read on the client's page. Never a column on clients.
+    initializer "leads.models" do
+      ActiveSupport.on_load(:runwell_client) { has_one :won_lead, class_name: "Leads::Lead", dependent: :nullify }
     end
 
     config.to_prepare do
-      Cms::Plugins.register :leads, name: "Leads", version: "1.0.0", author: "Martin Business Consultants",
-        enabled_by_default: true, requires: ">= 1.0", depends_on: [:forms],
-        homepage: "https://github.com/Martin-Business-Consultants/cms-leads",
-        description: "Lead nurturing: every form submission with an email address becomes a lead with a timeline " \
-                     "and a score, follow-up tasks, and email sequences that send, track opens and clicks, and " \
-                     "let people unsubscribe.",
-        adopt_if: -> { Leads::Lead.exists? }
-
-      Cms::Plugins.menu :leads, :leads, label: "Leads", icon: "person", group: "Content", after: [:forms, :globals],
-        path: -> { leads_path }, capability: "leads:read"
-      Cms::Plugins.submenu :leads, :leads, label: "All leads", path: -> { leads_path }, capability: "leads:read"
-      Cms::Plugins.submenu :leads, :leads, label: "Add new", path: -> { new_lead_path }, capability: "leads:write",
-        after: "All leads"
-      Cms::Plugins.submenu :leads, :leads, label: "Tasks", path: -> { leads_tasks_path }, capability: "tasks:read",
-        after: "Add new"
-      Cms::Plugins.submenu :leads, :leads, label: "Sequences", path: -> { leads_sequences_path },
-        capability: "sequences:read", after: "Tasks"
-      Cms::Plugins.new_item :leads, label: "Lead", path: -> { new_lead_path }, capability: "leads:write",
-        after: ["Form", "Global"]
-      Cms::Plugins.settings :leads, "Leads", -> { settings_leads_path },
-        description: "Scoring, the qualification threshold, who sequence emails come from, and which forms make leads.",
-        capability: "leads:read"
-      Cms::Plugins.permissions :leads, "Leads",
-        %w[leads:read leads:write leads:delete sequences:read sequences:write tasks:read tasks:write],
-        after: ["Forms", "Globals"],
-        defaults: {editor: %w[leads:read leads:write sequences:read sequences:write tasks:read tasks:write],
-                   author: %w[leads:read tasks:read tasks:write],
-                   agent: %w[leads:read sequences:read tasks:read]}
-      Cms::Plugins.slot :dashboard, :leads, "leads/slots/dashboard"
-
-      Cms::Plugins.counts :leads, after: :forms, leads: -> { Leads::Lead.count }, lead_sequences: -> { Leads::Sequence.count }
-      # Sends the sequences' due steps (Leads::Enrollment::Deliverable).
-      Cms::Plugins.minutely :leads, :sequences, -> { Leads::Enrollment.deliver_due_later }, every: 5
-      Cms::Plugins.webhook_events :leads, "Leads",
-        %w[lead.created lead.stage_changed lead.qualified lead.unsubscribed lead_task.created], after: "submission.created"
-
-      Cms::Plugins.api :leads, "/api/leads", description: "Leads, newest activity first (?stage=, ?q=); create or update one by email."
-      Cms::Plugins.api :leads, "/api/leads/:id", description: "A lead with its timeline, tasks and enrollments; update or delete it."
-      Cms::Plugins.api :leads, "/api/leads/:lead_id/notes", description: "Add a note to a lead's timeline."
-      Cms::Plugins.api :leads, "/api/leads/:lead_id/tasks", description: "A lead's follow-up tasks; add one."
-      Cms::Plugins.api :leads, "/api/leads/:lead_id/score_adjustments", description: "Adjust a lead's score, with a reason."
-      Cms::Plugins.api :leads, "/api/leads/:lead_id/enrollments", description: "Enroll a lead in a sequence."
-      Cms::Plugins.api :leads, "/api/leads/sequences", description: "The email sequences, with their steps."
-      Cms::Plugins.api :leads, "/api/leads/tasks", description: "Open tasks across every lead (?assignee=me, ?overdue=1)."
+      Runwell::Plugins.register :leads, name: "Leads", version: Leads::VERSION, author: "Martin Business Consultants",
+        enabled_by_default: false, requires: ">= 2.21.0", homepage: "https://github.com/Martin-Business-Consultants/runwell-leads",
+        description: "The people who might become clients: captured from your website’s forms or added by hand, " \
+                     "scored by what they do, followed up with tasks and email sequences, and made a client in one step."
+      Runwell::Plugins.nav :leads, "Leads", -> { leads_path }
+      Runwell::Plugins.settings :leads, "Leads", -> { leads_settings_path }
+      Runwell::Plugins.permission :leads, :manage_sequences, name: "Write and switch on lead email sequences", roles: %w[owner manager]
+      Runwell::Plugins.stylesheet :leads, "leads/leads"
+      Runwell::Plugins.slot :client_aside, :leads, "leads/slots/client_aside"
+      Runwell::Plugins.briefing :leads, "Lead follow-ups", partial: "leads/briefing/task",
+        items: ->(user) { Leads::Task.pending.assigned_to(user).due_by(Date.current).in_due_order.includes(:lead) }
+      # Each send is queued for its time as it's scheduled; this catches any that were missed
+      # (a sequence switched back on, a send that failed, a restart).
+      Runwell::Plugins.nightly :leads, -> { Leads::Enrollment.deliver_due_later }
+      Runwell::Plugins.agent_workflow :leads, "Following up leads", <<~STEPS
+        1. `list_leads` (stage: new or qualified) to see who needs attention, `show_lead` for one's timeline and tasks.
+        2. `add_lead_note` for what was said, `add_lead_task` for the next step, `update_lead` to move its stage.
+        3. `enroll_lead` to start an email sequence (it emails the lead, so it asks first).
+        4. When they say yes, `convert_lead_to_client`: it makes the client and contact, and the lead becomes a customer.
+      STEPS
     end
   end
 end

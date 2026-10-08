@@ -1,10 +1,7 @@
-# frozen_string_literal: true
-
 module Leads
-  # One email a sequence sent a lead. Its links carry signed tokens back to
-  # the plugin's public routes (Leads::Mail::…): the open pixel, click
-  # tracking and the unsubscribe page. The first open and the first click
-  # score (Settings › Leads); every click goes on the timeline.
+  # One email a sequence sent a lead. Its links carry signed tokens back to the plugin's public
+  # routes (Leads::Tracking::…): the open pixel, click tracking and the unsubscribe page. The first
+  # open and the first click score (Settings › Leads); every click goes on the timeline.
   class Message < ApplicationRecord
     OPEN_PURPOSE = "leads/open"
     CLICK_PURPOSE = "leads/click"
@@ -24,12 +21,12 @@ module Leads
     def self.find_by_click_token(token)
       id, url = Leads.verifier.verified(token.to_s, purpose: CLICK_PURPOSE)
       message = id && find_by(id: id)
-      [message, url] if message && url.to_s.match?(%r{\Ahttps?://}i)
+      [ message, url ] if message && url.to_s.match?(%r{\Ahttps?://}i)
     end
 
     def open_token = Leads.verifier.generate(id, purpose: OPEN_PURPOSE)
 
-    def click_token(url) = Leads.verifier.generate([id, url], purpose: CLICK_PURPOSE)
+    def click_token(url) = Leads.verifier.generate([ id, url ], purpose: CLICK_PURPOSE)
 
     def deliver_now
       Leads::SequenceMailer.with(message: self).step_email.deliver_now
@@ -41,7 +38,7 @@ module Leads
       return false if opened_at
 
       update!(opened_at: Time.current)
-      lead.record_activity(:email_opened, summary: "Opened “#{subject}”", data: {message_id: id}, user: nil,
+      lead.record_activity(:email_opened, summary: "Opened “#{subject}”", data: { message_id: id }, user: nil,
         points: Leads::Settings.current.points_for(:email_open))
       true
     end
@@ -52,16 +49,15 @@ module Leads
       first = clicked_at.nil?
       update!(clicked_at: Time.current) if first
       lead.record_activity(:email_clicked, summary: "Clicked #{host_of(url)} in “#{subject}”",
-        data: {message_id: id, url: url}, user: nil,
+        data: { message_id: id, url: url }, user: nil,
         points: first ? Leads::Settings.current.points_for(:email_click) : 0)
     end
 
     private
-
-    def host_of(url)
-      URI.parse(url).host.presence || url
-    rescue URI::InvalidURIError
-      url
-    end
+      def host_of(url)
+        URI.parse(url).host.presence || url
+      rescue URI::InvalidURIError
+        url
+      end
   end
 end

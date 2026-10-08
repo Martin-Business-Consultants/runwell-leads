@@ -1,0 +1,124 @@
+<% @page_title = @sequence.name %>
+<%= leads_section_nav :sequences %>
+<% manage = can?(:manage_sequences) %>
+<% steps = @sequence.steps.to_a %>
+
+<% content_for :header do %>
+  <%= parent_page "Email sequences", leads_sequences_path %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <div class="page-heading">
+      <h1 class="page-title"><%= @page_title %></h1>
+      <% if manage %>
+        <div class="page-heading__actions">
+          <%= link_to edit_leads_sequence_path(@sequence), class: "btn btn--circle-mobile", data: { keys: "e" } do %>
+            <%= icon_tag "pencil" %>
+            <span>Edit</span>
+            <kbd class="hide-on-touch">E</kbd>
+          <% end %>
+          <% if steps.any? %>
+            <%= button_to leads_sequence_test_path(@sequence), class: "btn btn--circle-mobile" do %>
+              <%= icon_tag "email" %>
+              <span>Send me a test</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <section class="settings__section" id="emails">
+      <header>
+        <h2 class="divider">Emails <span class="txt-subtle"><%= steps.size %></span></h2>
+      </header>
+      <% if steps.any? %>
+        <ol class="leads-steps">
+          <% steps.each_with_index do |step, index| %>
+            <%# herb:key step.id %>
+            <li class="leads-step" data-filter-target="item">
+              <div class="flex align-center gap-half">
+                <span class="leads-step__number"><%= index + 1 %></span>
+                <strong class="flex-item-grow overflow-ellipsis min-width"><%= step.subject %></strong>
+                <span class="txt-x-small txt-subtle txt-nowrap"><%= step.delay_label %></span>
+                <% if manage %>
+                  <% if index.positive? %>
+                    <%= button_to leads_sequence_step_path(@sequence, step), method: :patch, params: { move: "up" }, class: "btn btn--circle borderless", title: "Move up" do %>
+                      <%= icon_tag "arrow-up" %><span class="for-screen-reader">Move up</span>
+                    <% end %>
+                  <% end %>
+                  <%= link_to edit_leads_sequence_step_path(@sequence, step), class: "btn btn--circle borderless", title: "Edit" do %>
+                    <%= icon_tag "pencil" %><span class="for-screen-reader">Edit <%= step.subject %></span>
+                  <% end %>
+                  <%= render "layouts/shared/delete_dialog", name: "“#{step.subject}”", path: leads_sequence_step_path(@sequence, step),
+                        message: "Leads in the sequence skip it from now on." %>
+                <% end %>
+              </div>
+              <% if step.body.present? %>
+                <details class="txt-small">
+                  <summary class="txt-subtle">Show the email</summary>
+                  <div class="leads-step__body"><%= rich_text step.body %></div>
+                </details>
+              <% end %>
+            </li>
+          <% end %>
+        </ol>
+      <% else %>
+        <p class="txt-subtle txt-small margin-none">No emails yet.</p>
+      <% end %>
+
+      <% if manage %>
+        <details class="section-actions"<% if steps.empty? %> open<% end %>>
+          <summary class="btn txt-small"><%= icon_tag "add" %> Add an email</summary>
+          <%= form_with model: @sequence.steps.new, url: leads_sequence_steps_path(@sequence), scope: :step, class: "flex flex-column gap txt-small", data: { controller: "form", turbo_action: "advance" } do |form| %>
+            <%= form.text_field :subject, required: true, class: "input full-width", autocomplete: "off", placeholder: "Subject, e.g. Thanks for getting in touch, {{first_name}}" %>
+            <div class="flex flex-wrap align-center gap-half">
+              <span>Send it</span>
+              <%= form.number_field :delay_amount, value: steps.empty? ? 0 : 2, min: 0, max: 999, class: "input leads-delay", aria: { label: "How long" } %>
+              <%= form.select :delay_unit, Leads::Step::DELAY_UNITS.map { [ it, it ] }, { selected: "days" }, class: "input input--select", aria: { label: "Hours or days" } %>
+              <span><%= steps.empty? ? "after they join (0 is right away)" : "after the email before" %></span>
+            </div>
+            <%= rich_text_field form, :body, placeholder: "Hi {{first_name}}, …" %>
+            <div class="flex gap-half justify-center">
+              <button type="submit" class="btn btn--link">Add the email</button>
+            </div>
+          <% end %>
+        </details>
+      <% end %>
+    </section>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section flex flex-column gap-half">
+      <header>
+        <h2 class="divider">Details</h2>
+      </header>
+      <dl class="record-facts">
+        <dt>Status</dt><dd><%= status_tag @sequence.active? ? "Active" : "Dormant" %> <span class="txt-subtle"><%= @sequence.active? ? "Sending" : "Nothing sends while it’s off" %></span></dd>
+        <dt>Starts</dt><dd><%= @sequence.trigger_label %></dd>
+        <dt>Emails</dt><dd><%= steps.size %></dd>
+      </dl>
+    </section>
+
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">In it now <span class="txt-subtle"><%= @enrollments.size %></span></h2>
+      </header>
+      <% if @enrollments.any? %>
+        <ul class="settings__scrollable-list">
+          <% @enrollments.each do |enrollment| %>
+            <%# herb:key enrollment.id %>
+            <li class="flex align-center gap-half txt-small" data-filter-target="item">
+              <%= link_to enrollment.lead.display_name, lead_path(enrollment.lead), class: "txt-ink overflow-ellipsis min-width" %>
+              <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
+              <span class="txt-x-small txt-subtle txt-nowrap"><%= enrollment.progress_label %></span>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="txt-subtle txt-small margin-none">Nobody yet. Start it from a lead’s page<%= ", or it starts by itself: #{@sequence.trigger_label.downcase}" unless @sequence.trigger == "manual" %>.</p>
+      <% end %>
+    </section>
+  </aside>
+</section>

@@ -1,0 +1,44 @@
+<%# locals: (lead:) %>
+<%= render "layouts/shared/errors", record: lead %>
+
+<%= form_with model: lead, url: lead.new_record? ? leads_path : lead_path(lead), scope: :lead, class: "record-form", data: { controller: "form", action: "keydown.esc->form#cancel" } do |form| %>
+  <label class="record-form__field">
+    <span class="record-form__label">Email</span>
+    <%= form.email_field :email, required: true, class: "input full-width", autofocus: lead.new_record?, autocomplete: "off", placeholder: "ann@example.com" %>
+  </label>
+
+  <div class="record-form__row">
+    <label class="record-form__field">
+      <span class="record-form__label">Name</span>
+      <%= form.text_field :name, class: "input full-width", autocomplete: "off" %>
+    </label>
+    <label class="record-form__field">
+      <span class="record-form__label">Company</span>
+      <%= form.text_field :company, class: "input full-width", autocomplete: "off" %>
+      <span class="record-form__hint">Names the <%= term(:client).downcase %> when they become one.</span>
+    </label>
+  </div>
+
+  <div class="record-form__row">
+    <label class="record-form__field">
+      <span class="record-form__label">Phone</span>
+      <%= form.telephone_field :phone, class: "input full-width", autocomplete: "off" %>
+    </label>
+    <label class="record-form__field">
+      <span class="record-form__label">Owner</span>
+      <%= form.select :owner_id, lead_people_options, { include_blank: "Unassigned" }, class: "input input--select full-width" %>
+    </label>
+  </div>
+
+  <label class="record-form__field">
+    <span class="record-form__label">Stage</span>
+    <%= form.select :stage, lead_stage_options, {}, class: "input input--select full-width" %>
+  </label>
+
+  <div class="record-form__footer">
+    <%= link_to "Cancel", lead.new_record? ? leads_path : lead_path(lead), class: "btn btn--plain record-form__cancel", data: { form_target: "cancel" } %>
+    <button type="submit" class="btn btn--link" data-form-target="submit">
+      <span><%= lead.new_record? ? "Add lead" : "Save changes" %></span>
+    </button>
+  </div>
+<% end %>

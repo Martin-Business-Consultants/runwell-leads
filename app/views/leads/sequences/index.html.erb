@@ -1,45 +1,43 @@
-<% @page_title = "Sequences" %>
-<%= parent_page "Leads", leads_path %>
-<% can_write = Current.user.can?("sequences:write") %>
+<% @page_title = "Email sequences" %>
+<%= leads_section_nav :sequences %>
 
-<% content_for :page_actions do %>
-  <% if can_write %>
-    <%= render "layouts/shared/new_link", text: "New sequence", path: new_leads_sequence_path %>
-  <% end %>
-<% end %>
-<%= render "layouts/shared/page_header", title: @page_title, description: "Emails that go out one after another to the leads enrolled in them, until they finish, unsubscribe, or become customers." %>
+<%= render "layouts/shared/index_toolbar", new_text: "Add a sequence", new_path: (new_leads_sequence_path if can?(:manage_sequences)) %>
 
-<section class="<%= ui(:panel, "overflow-x-auto") %>">
-  <table class="data-table <%= ui(:table) %>">
-    <thead>
-      <tr>
-        <th class="<%= ui(:th) %>">Sequence</th>
-        <th class="<%= ui(:th) %>">Status</th>
-        <th class="<%= ui(:th, "hidden sm:table-cell") %>">Starts</th>
-        <th class="<%= ui(:th, "text-right") %>">Steps</th>
-        <th class="<%= ui(:th, "text-right") %>">In it now</th>
-        <th class="<%= ui(:th, "hidden md:table-cell text-right") %>">Ever enrolled</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @sequences.each do |sequence| %>
-        <%# herb:key sequence.id %>
-        <tr id="<%= dom_id(sequence) %>" class="hover:bg-gray-50" data-filter-target="item">
-          <td class="<%= ui(:td) %>">
-            <%= link_to sequence.name, edit_leads_sequence_path(sequence), class: "font-medium text-gray-900 hover:underline" %>
-            <%= render "layouts/shared/row_links", edit_path: (edit_leads_sequence_path(sequence) if can_write),
-                  links: [ [ "Preview", leads_sequence_preview_path(sequence) ] ],
-                  delete_path: (leads_sequence_path(sequence) if can_write), delete_name: sequence.name,
-                  delete_message: "Its enrollments stop and go with it. The emails it sent stay on the leads’ timelines." %>
-          </td>
-          <td class="<%= ui(:td) %>"><%= status_tag sequence.active? ? "Active" : "Off" %></td>
-          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><span class="text-gray-500"><%= sequence.trigger_label %></span></td>
-          <td class="<%= ui(:td, "text-right") %>"><span class="tabular-nums"><%= sequence.steps.size %></span></td>
-          <td class="<%= ui(:td, "text-right") %>"><span class="tabular-nums"><%= @active_counts[sequence.id].to_i %></span></td>
-          <td class="<%= ui(:td, "hidden md:table-cell text-right") %>"><span class="tabular-nums text-gray-500"><%= @total_counts[sequence.id].to_i %></span></td>
-        </tr>
+<% if @sequences.any? %>
+  <section class="panel shadow center index-table">
+    <table class="data-table">
+      <thead>
+        <tr><th>Sequence</th><th>Starts</th><th class="data-table__number">Emails</th><th class="data-table__number">In it now</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @sequences.each do |sequence| %>
+          <%# herb:key sequence.id %>
+          <tr data-filter-target="item">
+            <td><%= link_to sequence.name, leads_sequence_path(sequence), class: "txt-ink font-weight-bold" %></td>
+            <td class="txt-subtle"><%= sequence.trigger_label %></td>
+            <td class="data-table__number"><%= sequence.steps.size %></td>
+            <td class="data-table__number"><%= @counts.fetch(sequence.id, 0) %></td>
+            <td><%= status_tag sequence.active? ? "Active" : "Dormant" %></td>
+            <% if can?(:manage_sequences) %>
+              <%= render "layouts/shared/row_actions", name: sequence.name, edit_path: edit_leads_sequence_path(sequence), delete_path: leads_sequence_path(sequence),
+                    delete_message: "Leads in it stop getting its emails. What was sent stays on their timelines." %>
+            <% else %>
+              <td></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% else %>
+  <div class="panel panel--centered flex flex-column gap-half">
+    <p class="txt-medium">No email sequences yet.</p>
+    <p class="txt-small txt-subtle margin-none">A sequence is a few emails sent one after another, a delay apart: to every lead from your website, everyone who reaches a stage, or those you start it for.</p>
+    <% if can?(:manage_sequences) %>
+      <%= link_to new_leads_sequence_path, class: "btn btn--link center" do %>
+        <span>Write your first sequence</span>
+        <%= icon_tag "arrow-right" %>
       <% end %>
-      <%= table_empty_row("No sequences yet. A welcome series for new leads is a good first one.", columns: 6) if @sequences.none? %>
-    </tbody>
-  </table>
-</section>
+    <% end %>
+  </div>
+<% end %>

@@ -1,12 +1,6 @@
+<% content_for :reason, "You're getting this because you got in touch with us." %>
 <%= @text %>
-
---
-<% general = Setting.get("general") %>
-<% if general["title"].present? %>
-<%= general["title"] %>
-<% end %>
 <% if @unsubscribe_url %>
-Unsubscribe: <%= @unsubscribe_url %>
-<% else %>
-Unsubscribe: (the link works in a lead's copy)
+
+Rather not hear from us? Unsubscribe: <%= @unsubscribe_url %>
 <% end %>

@@ -1,8 +1,5 @@
-# frozen_string_literal: true
-
-# Leaving the emails: every email carries a link with the lead's signed token
-# (unsubscribe_token) to a public page that records it in one click, stops
-# the lead's sequences and says so (lead.unsubscribed).
+# Leaving the emails: every email carries a link with the lead's signed token to a public page
+# that records it in one click and stops the lead's sequences.
 module Leads::Lead::Subscribable
   extend ActiveSupport::Concern
 
@@ -26,17 +23,15 @@ module Leads::Lead::Subscribable
     update!(unsubscribed_at: Time.current)
     record_activity(:unsubscribed, summary: "Unsubscribed from emails", user: nil)
     stop_enrollments(reason: "unsubscribed")
-    announce("lead.unsubscribed")
     true
   end
 
-  # Someone on the team putting a lead back on the list (it asked to be).
+  # Someone putting a lead back on the list (it asked to be).
   def resubscribe(user: Current.user)
     return false unless unsubscribed?
 
     update!(unsubscribed_at: nil)
     record_activity(:resubscribed, summary: "Subscribed to emails again", user: user)
-    track_event(:resubscribed)
     true
   end
 end

@@ -1,0 +1,8 @@
+<% @page_title = "An email address is needed" %>
+<section class="panel shadow flex flex-column gap-half txt-align-center">
+  <h1 class="txt-medium font-weight-black margin-none">That didn’t come through</h1>
+  <p class="txt-small margin-none">We need an email address to get back to you. Go back and add it.</p>
+  <% if request.referer.to_s.match?(%r{\Ahttps?://}i) %>
+    <%= link_to "Go back", request.referer, class: "btn center" %>
+  <% end %>
+</section>

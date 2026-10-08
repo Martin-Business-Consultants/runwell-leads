@@ -1,34 +1,49 @@
-<% @page_title = "Edit task" %>
-<% back = params[:return_to] == "lead" ? lead_path(@task.lead, anchor: "tasks") : leads_tasks_path %>
-<%= parent_page "Tasks", back %>
+<% @page_title = "Edit follow-up" %>
+<%= leads_section_nav :tasks %>
 
-<%= render "layouts/shared/page_header", title: @page_title, description: "A follow-up on #{@task.lead.display_name}." %>
-<%= render "layouts/shared/errors", record: @task %>
-
-<%= form_with model: @task, url: leads_task_path(@task), scope: :task, method: :patch, class: "flex flex-col gap-6 lg:flex-row lg:items-start" do |form| %>
-  <%= hidden_field_tag :return_to, params[:return_to] %>
-  <section class="<%= ui(:panel, "min-w-0 flex-1 space-y-5 p-6") %>">
-    <label class="flex flex-col gap-1.5">
-      <span class="<%= ui(:label) %>">Task</span>
-      <%= form.text_field :title, class: "w-full", required: true, maxlength: 200, autofocus: true %>
-    </label>
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Due</span>
-        <%= date_input form, :due_on, class: "w-full" %>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">For</span>
-        <%= form.select :assignee_id, lead_user_options, { include_blank: "Nobody" }, class: "w-full" %>
-      </label>
-    </div>
-  </section>
-
-  <aside class="flex shrink-0 flex-col gap-4 lg:w-80">
-    <%= render "layouts/shared/save_box", key: "task-save", title: "Task", button: "Save task",
-          lines: [ [ "person", "Lead", @task.lead.display_name ], [ "check", "Status", @task.done? ? "done" : "open" ] ],
-          trash_name: "this task", trash_path: leads_task_path(@task, return_to: params[:return_to]), trash_form: "task_delete_form" %>
-  </aside>
+<% content_for :header do %>
+  <%= parent_page @task.lead.display_name, lead_path(@task.lead) %>
 <% end %>
-<%= render "layouts/shared/delete_form", id: "task_delete_form", path: leads_task_path(@task, return_to: params[:return_to]) %>
-<%= render "content_form/postbox_state" %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "layouts/shared/errors", record: @task %>
+    <%= form_with model: @task, url: leads_task_path(@task), scope: :task, class: "record-form", data: { controller: "form", action: "keydown.esc->form#cancel" } do |form| %>
+      <label class="record-form__field">
+        <span class="record-form__label">What to do</span>
+        <%= form.text_field :title, required: true, class: "input full-width", autofocus: true, autocomplete: "off" %>
+      </label>
+      <div class="record-form__row">
+        <label class="record-form__field">
+          <span class="record-form__label">Who</span>
+          <%= form.select :assignee_id, lead_people_options, { include_blank: "Unassigned" }, class: "input input--select full-width" %>
+        </label>
+        <label class="record-form__field">
+          <span class="record-form__label">Due</span>
+          <%= date_input form, :due_on, class: "input full-width" %>
+        </label>
+      </div>
+      <div class="record-form__footer">
+        <%= link_to "Cancel", lead_path(@task.lead), class: "btn btn--plain record-form__cancel", data: { form_target: "cancel" } %>
+        <button type="submit" class="btn btn--link" data-form-target="submit"><span>Save changes</span></button>
+      </div>
+    <% end %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section flex flex-column gap-half">
+      <header>
+        <h2 class="divider">Details</h2>
+      </header>
+      <dl class="record-facts">
+        <dt>Lead</dt><dd><%= link_to @task.lead.display_name, lead_path(@task.lead), class: "txt-link" %></dd>
+        <dt>Added</dt><dd><%= l @task.created_at.to_date, format: :long %><%= " by " + @task.creator.display_name if @task.creator %></dd>
+        <dt>Status</dt><dd><%= status_tag @task.done? ? "Done" : "Open" %></dd>
+      </dl>
+    </section>
+    <%= render "layouts/shared/confirm", trigger: "Delete this follow-up", title: "Delete “#{@task.title_was}”?",
+          body: "It goes from the lead. What it said on the timeline stays.", button: "Delete", path: leads_task_path(@task) %>
+  </aside>
+</section>

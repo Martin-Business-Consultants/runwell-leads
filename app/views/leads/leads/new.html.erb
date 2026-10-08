@@ -1,44 +1,27 @@
-<% @page_title = "Add lead" %>
-<%= parent_page "Leads", leads_path %>
+<% @page_title = "Add a lead" %>
+<%= leads_section_nav :leads %>
 
-<%= render "layouts/shared/page_header", title: @page_title, description: "Someone who got in touch another way: a call, a card, a conversation. Form submissions add themselves." %>
-<%= render "layouts/shared/errors", record: @lead %>
-
-<%= form_with model: @lead, url: leads_path, scope: :lead, class: "flex flex-col gap-6 lg:flex-row lg:items-start" do |form| %>
-  <section class="<%= ui(:panel, "min-w-0 flex-1") %>">
-    <h2 class="<%= ui(:heading, "border-b border-gray-200 px-5 py-3.5") %>">Details</h2>
-    <div class="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Email</span>
-        <%= form.email_field :email, class: "w-full", required: true, autofocus: true, autocomplete: "off" %>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Name</span>
-        <%= form.text_field :name, class: "w-full", autocomplete: "off" %>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Phone</span>
-        <%= form.telephone_field :phone, class: "w-full", autocomplete: "off" %>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Company</span>
-        <%= form.text_field :company, class: "w-full", autocomplete: "off" %>
-      </label>
-    </div>
-  </section>
-
-  <aside class="flex shrink-0 flex-col gap-4 lg:w-80">
-    <% extra = capture do %>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Stage</span>
-        <%= form.select :stage, lead_stage_options, {}, class: "w-full" %>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="<%= ui(:label) %>">Owner</span>
-        <%= form.select :owner_id, lead_user_options, { include_blank: "No owner" }, class: "w-full" %>
-      </label>
-    <% end %>
-    <%= render "layouts/shared/save_box", key: "lead-save", title: "Lead", button: "Add lead", extra: extra %>
-  </aside>
+<% content_for :header do %>
+  <%= parent_page "Leads", leads_path %>
 <% end %>
-<%= render "content_form/postbox_state" %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "leads/leads/form", lead: @lead %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">What comes next</h2>
+      </header>
+      <ol class="record-steps txt-small">
+        <li>Add a follow-up: what to do about them, and by when. It shows on that person’s home page when it’s due.</li>
+        <li>Start an email sequence, or move their stage as you talk: a stage can start sequences of its own.</li>
+        <li>When they say yes, make them a <%= term(:client).downcase %>.</li>
+      </ol>
+    </section>
+  </aside>
+</section>

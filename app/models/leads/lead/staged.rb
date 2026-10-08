@@ -1,9 +1,6 @@
-# frozen_string_literal: true
-
-# Where a lead is: new, being nurtured, qualified, a customer, or lost. A
-# change of stage goes on the timeline and to webhooks (lead.stage_changed);
-# a customer or a lost lead leaves its sequences, and reaching a stage
-# enrolls the lead in the active sequences that start there.
+# Where a lead is: new, being nurtured, qualified, a customer, or lost. A change of stage goes on
+# the timeline; a customer or a lost lead leaves its sequences, and reaching a stage enrolls the
+# lead in the sequences that start there.
 module Leads::Lead::Staged
   extend ActiveSupport::Concern
 
@@ -13,40 +10,37 @@ module Leads::Lead::Staged
 
   included do
     scope :in_stage, ->(stage) { where(stage: stage) }
+    scope :open, -> { where.not(stage: FINISHED_STAGES) }
   end
 
   class_methods do
-    # One stage for a set of leads (the list's bulk action), one change each
-    # so every lead's timeline, webhooks and sequences follow. Returns the
-    # leads that changed.
-    def change_stage_of(leads, to:)
-      changed = leads.select { |lead| lead.change_stage(to) }
-      track_event(:bulk_stage_changed, to: to, emails: changed.map(&:email)) if changed.any?
-      changed
+    # The list's stage filter, each choice with how many it holds.
+    def filter_options
+      counts = group(:stage).count
+      [ [ "Open (#{counts.except(*FINISHED_STAGES).values.sum})", "open" ] ] +
+        STAGES.map { [ "#{it.humanize} (#{counts.fetch(it, 0)})", it ] } +
+        [ [ "All (#{counts.values.sum})", "all" ] ]
     end
   end
 
   def finished? = FINISHED_STAGES.include?(stage)
 
-  # Returns whether the stage changed. audit: false for a change the plugin
-  # made itself (a score crossing the threshold), which has no one behind it.
-  def change_stage(to, user: Current.user, audit: true)
+  # Returns whether the stage changed.
+  def change_stage(to, user: Current.user)
     to = to.to_s
     raise ArgumentError, "Unknown stage #{to.inspect}" unless STAGES.include?(to)
     return false if to == stage
 
     from = stage
     update!(stage: to)
-    record_activity(:stage_changed, summary: "Stage changed from #{from.humanize} to #{to.humanize}", data: {from: from, to: to}, user: user)
-    track_event(:stage_changed, from: from, to: to) if audit
-    announce("lead.stage_changed", webhook_payload.merge(previous_stage: from))
+    record_activity(:stage_changed, summary: "#{from.humanize} → #{to.humanize}", data: { from: from, to: to }, user: user)
     stop_enrollments(reason: to) if finished?
     enroll_in_sequences_for_stage
     true
   end
 
-  # An edit from the lead's page or the API: its details, and its stage
-  # through change_stage. Returns whether it saved; errors are on the lead.
+  # An edit from the lead's page or an agent: its details, and its stage through change_stage.
+  # Returns whether it saved; errors are on the lead.
   def revise(attributes, user: Current.user)
     attributes = attributes.to_h.stringify_keys
     stage = attributes.delete("stage").presence
@@ -56,10 +50,7 @@ module Leads::Lead::Staged
     end
 
     transaction do
-      assign_attributes(attributes)
-      changes = changed
-      save!
-      track_event(:updated, fields: changes) if changes.any?
+      update!(attributes)
       change_stage(stage, user: user) if stage
     end
     true

@@ -1,0 +1,84 @@
+/* Linked on every page while Leads is on (Runwell::Plugins.stylesheet). Runwell's design tokens
+   (docs/theming.md), so themes reach these too. */
+@layer components {
+  .leads-search .input {
+    inline-size: 14rem;
+    max-inline-size: 100%;
+  }
+
+  .leads-timeline,
+  .leads-steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--block-space-half);
+    list-style: none;
+    margin: var(--block-space) 0 0;
+    padding: 0;
+  }
+
+  .leads-timeline__item {
+    display: flex;
+    gap: var(--inline-space);
+  }
+
+  .leads-timeline__icon {
+    color: var(--color-ink-light);
+    flex-shrink: 0;
+    padding-block-start: 0.15em;
+  }
+
+  .leads-timeline__body {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .leads-timeline__note {
+    border-inline-start: 2px solid var(--color-ink-lighter);
+    margin-block: var(--block-space-half);
+    padding-inline-start: var(--inline-space);
+  }
+
+  .leads-points {
+    border: 1px solid var(--color-ink-lighter);
+    border-radius: var(--radius-pill, 99rem);
+    color: var(--color-ink-light);
+    font-variant-numeric: tabular-nums;
+    padding: 0 0.5em;
+  }
+
+  .leads-done {
+    text-decoration: line-through;
+  }
+
+  .leads-field {
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  .leads-step {
+    border: 1px solid var(--color-ink-lighter);
+    border-radius: calc(0.5rem * var(--radius-scale, 1));
+    padding: var(--block-space-half) var(--inline-space);
+  }
+
+  .leads-step__number {
+    align-items: center;
+    border: 1px solid var(--color-ink-lighter);
+    border-radius: 50%;
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    block-size: 1.5rem;
+    inline-size: 1.5rem;
+    justify-content: center;
+  }
+
+  .leads-step__body {
+    margin-block-start: var(--block-space-half);
+  }
+
+  .leads-delay,
+  .leads-points-input {
+    inline-size: 5rem;
+  }
+}

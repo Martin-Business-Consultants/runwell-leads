@@ -1,5 +1,27 @@
-<% @page_title = "New sequence" %>
-<%= parent_page "Sequences", leads_sequences_path %>
+<% @page_title = "Add a sequence" %>
+<%= leads_section_nav :sequences %>
 
-<%= render "layouts/shared/page_header", title: @page_title, description: "Write its emails, say when each goes, and choose what starts it." %>
-<%= render "leads/sequences/form", sequence: @sequence %>
+<% content_for :header do %>
+  <%= parent_page "Email sequences", leads_sequences_path %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "leads/sequences/form", sequence: @sequence %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">What comes next</h2>
+      </header>
+      <ol class="record-steps txt-small">
+        <li>Write its emails, each a delay after the one before. They can say {{first_name}}, {{name}}, {{email}} and {{company}}.</li>
+        <li>Send yourself a test to see them as a lead will.</li>
+        <li>Switch it on. Every email carries an unsubscribe link, and a lead who becomes a <%= term(:client).downcase %> or is lost leaves it.</li>
+      </ol>
+    </section>
+  </aside>
+</section>

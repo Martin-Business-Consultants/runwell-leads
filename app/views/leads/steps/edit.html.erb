@@ -1,0 +1,52 @@
+<% @page_title = "Edit email #{@step.number}" %>
+<%= leads_section_nav :sequences %>
+
+<% content_for :header do %>
+  <%= parent_page @sequence.name, leads_sequence_path(@sequence) %>
+<% end %>
+
+<section class="settings settings--split">
+  <div class="settings__panel panel shadow txt-align-start">
+    <h1 class="page-title"><%= @page_title %></h1>
+    <%= render "layouts/shared/errors", record: @step %>
+    <%= form_with model: @step, url: leads_sequence_step_path(@sequence, @step), scope: :step, class: "record-form", data: { controller: "form", action: "keydown.esc->form#cancel" } do |form| %>
+      <label class="record-form__field">
+        <span class="record-form__label">Subject</span>
+        <%= form.text_field :subject, required: true, class: "input full-width", autofocus: true, autocomplete: "off" %>
+      </label>
+      <div class="record-form__row">
+        <label class="record-form__field">
+          <span class="record-form__label">Send it after</span>
+          <%= form.number_field :delay_amount, min: 0, max: 999, class: "input full-width" %>
+        </label>
+        <label class="record-form__field">
+          <span class="record-form__label">Hours or days</span>
+          <%= form.select :delay_unit, Leads::Step::DELAY_UNITS.map { [ it, it ] }, {}, class: "input input--select full-width" %>
+          <span class="record-form__hint"><%= @step.number == 1 ? "After they join; 0 is right away." : "After the email before." %></span>
+        </label>
+      </div>
+      <div class="record-form__field">
+        <span class="record-form__label">Email</span>
+        <%= rich_text_field form, :body %>
+      </div>
+      <div class="record-form__footer">
+        <%= link_to "Cancel", leads_sequence_path(@sequence), class: "btn btn--plain record-form__cancel", data: { form_target: "cancel" } %>
+        <button type="submit" class="btn btn--link" data-form-target="submit"><span>Save changes</span></button>
+      </div>
+    <% end %>
+  </div>
+
+  <aside class="settings__panel settings__panel--side panel shadow txt-align-start">
+    <%= render "layouts/shared/sidebar_toggle" %>
+    <section class="settings__section">
+      <header>
+        <h2 class="divider">Personalizing</h2>
+      </header>
+      <ul class="record-steps txt-small">
+        <li><code>{{first_name}}</code> and <code>{{name}}</code>: “there” when we don’t know it</li>
+        <li><code>{{email}}</code> and <code>{{company}}</code></li>
+      </ul>
+      <p class="txt-x-small txt-subtle">Links are tracked, and every email ends with an unsubscribe link.</p>
+    </section>
+  </aside>
+</section>

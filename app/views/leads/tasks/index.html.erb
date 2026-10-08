@@ -1,45 +1,50 @@
-<% @page_title = "Tasks" %>
-<%= parent_page "Leads", leads_path %>
-<% can_write = Current.user.can?("tasks:write") %>
+<% @page_title = "Follow-ups" %>
+<%= leads_section_nav :tasks %>
 
-<%= render "layouts/shared/page_header", title: @page_title, description: "Follow-ups on leads, overdue first. Add one from the lead’s page." %>
+<% content_for :index_filters do %>
+  <%= render "layouts/shared/quick_filter", title: "Show…", param: :show, current: @show,
+        options: [ [ "Mine", "mine" ], [ "Everyone’s", "everyone" ], [ "Done", "done" ] ] %>
+<% end %>
+<%= render "layouts/shared/index_toolbar" %>
 
-<%= render "layouts/shared/status_links", param: :view, current: (@view == "mine" ? "" : @view),
-      options: [ [ "Mine", nil, @counts["mine"] ], [ "Everyone’s", "all", @counts["all"] ], [ "Done", "done", @counts["done"] ] ] %>
-
-<section class="<%= ui(:panel, "overflow-x-auto") %>">
-  <table class="data-table <%= ui(:table) %>" data-controller="pagination" data-pagination-paginate-on-intersection-value="true" data-pagination-discard-frame-value="true">
-    <thead>
-      <tr>
-        <th class="<%= ui(:th, "w-10") %>"><span class="sr-only">Done</span></th>
-        <th class="<%= ui(:th) %>">Task</th>
-        <th class="<%= ui(:th) %>">Due</th>
-        <th class="<%= ui(:th, "hidden sm:table-cell") %>">For</th>
-        <th class="<%= ui(:th, "hidden md:table-cell") %>">Lead stage</th>
-      </tr>
-    </thead>
-    <tbody id="<%= pagination_frame_id_for(:tasks_rows, @page.number) %>">
-      <% @tasks.each do |task| %>
-        <%# herb:key task.id %>
-        <tr id="<%= dom_id(task) %>" class="hover:bg-gray-50" data-filter-target="item">
-          <td class="<%= ui(:td) %>"><%= render "leads/tasks/check", task: task, can_write: can_write %></td>
-          <td class="<%= ui(:td) %>">
-            <div class="flex min-w-0 flex-col">
-              <span class="<%= class_names("font-medium", task.done? ? "text-gray-400 line-through" : "text-gray-900") %>"><%= task.title %></span>
-              <%= link_to task.lead.display_name, lead_path(task.lead, anchor: "tasks"), class: "truncate text-xs text-gray-500 hover:text-gray-900 hover:underline" %>
-            </div>
-            <%= render "layouts/shared/row_links", links: [ ([ "Edit", edit_leads_task_path(task) ] if can_write), [ "Lead", lead_path(task.lead) ] ].compact,
-                  delete_path: (leads_task_path(task) if can_write), delete_name: "this task" %>
-          </td>
-          <td class="<%= ui(:td) %>"><span class="text-xs"><%= lead_task_due task %></span></td>
-          <td class="<%= ui(:td, "hidden sm:table-cell") %>"><span class="text-gray-500"><%= task.assignee&.name || "Nobody" %></span></td>
-          <td class="<%= ui(:td, "hidden md:table-cell") %>"><%= lead_stage_badge task.lead.stage %></td>
-        </tr>
-      <% end %>
-      <%= table_next_page_row :tasks_rows, @page, columns: 5 %>
-      <% if @tasks.none? %>
-        <%= table_empty_row({ "mine" => "Nothing on your list. Tasks you’re given on a lead’s page land here.", "all" => "No open tasks.", "done" => "No tasks done yet." }.fetch(@view), columns: 5) %>
-      <% end %>
-    </tbody>
-  </table>
-</section>
+<% if @tasks.any? %>
+  <section class="panel shadow center index-table">
+    <table class="data-table">
+      <thead>
+        <tr><th></th><th>Follow-up</th><th>Lead</th><th>Due</th><th>Who</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @tasks.each do |task| %>
+          <%# herb:key task.id %>
+          <tr data-filter-target="item">
+            <td>
+              <% if task.done? %>
+                <%= button_to leads_task_completion_path(task), method: :delete, class: "btn btn--circle borderless", title: "Reopen" do %>
+                  <%= icon_tag "check-circle" %><span class="for-screen-reader">Reopen <%= task.title %></span>
+                <% end %>
+              <% else %>
+                <%= button_to leads_task_completion_path(task), class: "btn btn--circle borderless", title: "Mark done" do %>
+                  <%= icon_tag "check" %><span class="for-screen-reader">Mark <%= task.title %> done</span>
+                <% end %>
+              <% end %>
+            </td>
+            <td><%= link_to task.title, edit_leads_task_path(task), class: "txt-ink font-weight-bold" %></td>
+            <td><%= link_to task.lead.display_name, lead_path(task.lead), class: "txt-ink" %></td>
+            <td class="<%= class_names("txt-nowrap", "txt-negative": task.overdue?, "txt-subtle": !task.overdue?) %>"><%= lead_task_due(task) %></td>
+            <td><%= person_tag task.assignee, fallback: "Unassigned" %></td>
+            <%= render "layouts/shared/row_actions", name: task.title, edit_path: edit_leads_task_path(task), delete_path: leads_task_path(task) %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% else %>
+  <div class="blank-slate">
+    <% if @show == "done" %>
+      Nothing done yet.
+    <% else %>
+      Nothing to follow up<%= " for you" if @show == "mine" %>. Follow-ups are added on a lead’s page.
+      <%= link_to "Leads", leads_path, class: "txt-link" %>
+    <% end %>
+  </div>
+<% end %>
