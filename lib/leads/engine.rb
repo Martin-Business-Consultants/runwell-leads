@@ -39,6 +39,7 @@ module Leads
           resources :enrollments, only: %i[create update]
           resource :subscription, only: :create
           resource :conversion, only: :create
+          resource :spam, only: %i[create destroy]
         end
       end
     end

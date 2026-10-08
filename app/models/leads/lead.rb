@@ -5,7 +5,7 @@ module Leads
   # can be sent email sequences (Enrollable) until it unsubscribes (Subscribable), and becomes a
   # client in one step (Convertible).
   class Lead < ApplicationRecord
-    include Timelined, Scored, Staged, Enrollable, Subscribable, Capturable, Convertible
+    include Timelined, Scored, Staged, Enrollable, Subscribable, Capturable, Convertible, Spammable
 
     SOURCES = %w[website manual agent].freeze
 
@@ -14,9 +14,11 @@ module Leads
     has_many :tasks, class_name: "Leads::Task", dependent: :delete_all
     has_many :messages, class_name: "Leads::Message", dependent: :delete_all
 
-    normalizes :email, with: -> { it.to_s.strip.downcase }
+    normalizes :email, with: -> { it.to_s.strip.downcase.presence }
 
-    validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+    # Someone who rang may have no email address yet: a name or a number is enough.
+    validates :email, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
+    validate { errors.add(:base, "Give a name, email or phone") if [ name, email, phone ].all?(&:blank?) }
     validates :source, inclusion: { in: SOURCES }
     validates :stage, inclusion: { in: STAGES }
 
@@ -26,7 +28,7 @@ module Leads
       where("LOWER(leads_leads.email) LIKE :p OR LOWER(leads_leads.name) LIKE :p OR LOWER(leads_leads.company) LIKE :p", p: pattern)
     }
 
-    def display_name = name.presence || email
+    def display_name = name.presence || email.presence || phone.presence || "Lead #{id}"
     def label = display_name
 
     def source_text

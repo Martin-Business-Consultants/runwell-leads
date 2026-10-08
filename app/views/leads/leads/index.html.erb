@@ -11,8 +11,7 @@
 <% end %>
 <%= render "layouts/shared/index_toolbar", new_text: "Add a lead", new_path: new_lead_path %>
 
-<% if @leads.any? %>
-  <section class="panel shadow center index-table">
+<section class="panel shadow center index-table">
     <table class="data-table">
       <thead>
         <tr><th>Lead</th><th>Stage</th><th class="data-table__number">Score</th><th>Owner</th><th>Last active</th><th></th></tr>
@@ -24,7 +23,7 @@
             <td>
               <%= link_to lead_path(lead), class: "txt-ink" do %>
                 <strong><%= lead.display_name %></strong>
-                <div class="txt-x-small txt-subtle overflow-ellipsis"><%= [ (lead.email if lead.name.present?), lead.company ].compact_blank.join(" · ") %></div>
+                <div class="txt-x-small txt-subtle overflow-ellipsis"><%= [ (lead.email if lead.name.present?), (lead.phone if lead.email.blank?), lead.company ].compact_blank.join(" · ") %></div>
               <% end %>
             </td>
             <td><%= lead_stage_tag lead.stage %></td>
@@ -33,6 +32,17 @@
             <td class="txt-subtle txt-nowrap"><%= time_ago_in_words(lead.last_activity_at || lead.created_at) %> ago</td>
             <%= render "layouts/shared/row_actions", name: lead.display_name, edit_path: edit_lead_path(lead), delete_path: lead_path(lead),
                   delete_message: "This forgets the lead with its timeline, tasks and the emails sent to it." %>
+          </tr>
+        <% end %>
+        <% if @leads.empty? %>
+          <tr>
+            <td colspan="6" class="txt-subtle txt-small">
+              <% if Leads::Lead.exists? %>
+                No leads match. <%= link_to "Show all", leads_path(stage: "all"), class: "txt-link" %>
+              <% else %>
+                No leads yet. They come in from your website’s forms (<%= link_to "Settings › Leads", leads_settings_path, class: "txt-link" %> shows how), or add one yourself.
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
@@ -48,18 +58,3 @@
       <% end %>
     </nav>
   <% end %>
-<% elsif Leads::Lead.exists? %>
-  <div class="blank-slate">
-    No leads match.
-    <%= link_to "Show all", leads_path(stage: "all"), class: "txt-link" %>
-  </div>
-<% else %>
-  <div class="panel panel--centered flex flex-column gap-half">
-    <p class="txt-medium">No leads yet.</p>
-    <p class="txt-small txt-subtle margin-none">They come in from your website’s forms (Settings › Leads shows how), or add one yourself.</p>
-    <%= link_to new_lead_path, class: "btn btn--link center" do %>
-      <span>Add your first lead</span>
-      <%= icon_tag "arrow-right" %>
-    <% end %>
-  </div>
-<% end %>

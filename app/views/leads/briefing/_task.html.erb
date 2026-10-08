@@ -2,6 +2,6 @@
 <div class="flex flex-column gap-half txt-align-start">
   <%= link_to item.title, lead_path(item.lead), class: "txt-ink font-weight-bold" %>
   <div class="txt-x-small txt-subtle">
-    <%= item.lead.display_name %> · <span class="<%= "txt-negative" if item.overdue? %>"><%= lead_task_due(item) %></span>
+    <%= item.lead.display_name %> · <span class="<%= "txt-negative" if item.overdue? %>"><%= lead_task_due(item, prefix: true) %></span>
   </div>
 </div>

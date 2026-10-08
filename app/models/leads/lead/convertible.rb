@@ -9,13 +9,14 @@ module Leads::Lead::Convertible
   # Returns the client.
   def convert_to_client!(user: Current.user)
     raise ArgumentError, "#{display_name} is already a client" if client
+    raise ArgumentError, "#{display_name} is marked as spam" if spam?
 
     transaction do
-      contact = ::Contact.find_by(email: email)
+      contact = email && ::Contact.find_by(email: email)
       made = contact.nil? && ::Client.where(name: client_name).none?
       client = contact&.client || ::Client.find_or_create_by!(name: client_name)
       client.record_event!("client.created") if made
-      client.contacts.create!(name: name.presence || email, email: email, phone: phone) unless contact
+      client.contacts.create!(name: name.presence || email || phone, email: email, phone: phone) unless contact
 
       update!(client: client)
       change_stage("customer", user: user)
@@ -25,5 +26,5 @@ module Leads::Lead::Convertible
   end
 
   private
-    def client_name = company.presence || name.presence || email
+    def client_name = company.presence || name.presence || email.presence || phone
 end

@@ -7,11 +7,10 @@
 <% end %>
 <%= render "layouts/shared/index_toolbar" %>
 
-<% if @tasks.any? %>
-  <section class="panel shadow center index-table">
+<section class="panel shadow center index-table">
     <table class="data-table">
       <thead>
-        <tr><th></th><th>Follow-up</th><th>Lead</th><th>Due</th><th>Who</th><th></th></tr>
+        <tr><th></th><th>Follow-up</th><th>Lead</th><th><%= @show == "done" ? "Done" : "Due" %></th><th>Who</th><th></th></tr>
       </thead>
       <tbody>
         <% @tasks.each do |task| %>
@@ -35,16 +34,17 @@
             <%= render "layouts/shared/row_actions", name: task.title, edit_path: edit_leads_task_path(task), delete_path: leads_task_path(task) %>
           </tr>
         <% end %>
+        <% if @tasks.empty? %>
+          <tr>
+            <td colspan="6" class="txt-subtle txt-small">
+              <% if @show == "done" %>
+                Nothing done yet.
+              <% else %>
+                Nothing to follow up<%= " for you" if @show == "mine" %>. Follow-ups are added on a lead’s page.
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
       </tbody>
     </table>
   </section>
-<% else %>
-  <div class="blank-slate">
-    <% if @show == "done" %>
-      Nothing done yet.
-    <% else %>
-      Nothing to follow up<%= " for you" if @show == "mine" %>. Follow-ups are added on a lead’s page.
-      <%= link_to "Leads", leads_path, class: "txt-link" %>
-    <% end %>
-  </div>
-<% end %>

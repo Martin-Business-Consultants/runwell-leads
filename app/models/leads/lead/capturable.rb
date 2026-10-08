@@ -12,6 +12,9 @@ module Leads::Lead::Capturable
       return nil unless submission.email
 
       lead, created = absorb(submission)
+      # Spam that comes back is kept out of sight: nothing on its timeline, no points, no emails.
+      return lead if lead.spam?
+
       source = submission.source.presence || "website"
       lead.record_activity(:captured, summary: "Came in from #{source}", user: nil,
         points: Leads::Settings.current.points_for(:capture), data: { source: source, fields: submission.fields })
@@ -24,6 +27,8 @@ module Leads::Lead::Capturable
       def absorb(submission)
         lead = find_or_initialize_by(email: submission.email)
         created = lead.new_record?
+        return [ lead, false ] if lead.spam?
+
         lead.assign_attributes(submission.details)
         lead.fields = lead.fields.to_h.merge(submission.fields)
         lead.assign_attributes(source: "website", source_label: submission.source) if created

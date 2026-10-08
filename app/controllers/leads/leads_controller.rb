@@ -5,14 +5,14 @@ module Leads
     allow_staff
     require_permission :delete_records, only: :destroy
     agent_tool :list_leads, on: :index, title: "List leads",
-      description: "Leads, most recently active first. stage: open (the default: not yet a customer or lost), new, nurturing, qualified, customer, lost or all. owner: me, or a person. q: part of a name, email or company.",
+      description: "Leads, most recently active first. stage: open (the default: not yet a customer, lost or spam), new, nurturing, qualified, customer, lost, spam or all (everything but spam). owner: me, or a person. q: part of a name, email or company.",
       params: { stage: "string", owner: "string", q: "string" }, next_tools: %i[show_lead create_lead]
     agent_tool :show_lead, on: :show, title: "Show a lead",
       description: "A lead with its details, score, timeline, tasks and email sequences.",
       next_tools: %i[add_lead_note add_lead_task update_lead enroll_lead convert_lead_to_client]
     agent_tool :create_lead, on: :create, title: "Add a lead",
-      description: "Someone who might become a client. stage: new (the default), nurturing, qualified, customer or lost.",
-      params: { lead: { email: "string!", name: "string", phone: "string", company: "string", stage: Lead::STAGES, owner_id: "integer" } },
+      description: "Someone who might become a client: a name, email or phone is enough (someone who rang may have no email). stage: new (the default), nurturing, qualified, customer, lost or spam.",
+      params: { lead: { email: "string", name: "string", phone: "string", company: "string", stage: Lead::STAGES, owner_id: "integer" } },
       next_tools: %i[add_lead_task enroll_lead]
     agent_tool :update_lead, on: :update, title: "Change a lead",
       description: "Its details, owner or stage. Moving it to customer or lost stops its email sequences; a stage can start the sequences triggered by it.",
@@ -26,7 +26,7 @@ module Leads
       @stage = params[:stage].presence_in(Lead::STAGES + %w[open all]) || "open"
       @owner = params[:owner].presence
       scope = case @stage
-      when "all" then Lead.all
+      when "all" then Lead.not_spam
       when "open" then Lead.open
       else Lead.in_stage(@stage)
       end

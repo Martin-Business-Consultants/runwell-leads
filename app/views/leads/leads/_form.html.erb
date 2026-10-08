@@ -4,7 +4,8 @@
 <%= form_with model: lead, url: lead.new_record? ? leads_path : lead_path(lead), scope: :lead, class: "record-form", data: { controller: "form", action: "keydown.esc->form#cancel" } do |form| %>
   <label class="record-form__field">
     <span class="record-form__label">Email</span>
-    <%= form.email_field :email, required: true, class: "input full-width", autofocus: lead.new_record?, autocomplete: "off", placeholder: "ann@example.com" %>
+    <%= form.email_field :email, class: "input full-width", autofocus: lead.new_record?, autocomplete: "off", placeholder: "ann@example.com" %>
+    <span class="record-form__hint">Optional: someone who rang may not have given one. A name, email or phone is enough.</span>
   </label>
 
   <div class="record-form__row">

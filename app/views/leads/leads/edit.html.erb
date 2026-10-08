@@ -1,8 +1,8 @@
-<% @page_title = "Edit #{@lead.name_was.presence || @lead.email_was}" %>
+<% @page_title = "Edit #{@lead.name_was.presence || @lead.email_was.presence || @lead.phone_was.presence || "lead"}" %>
 <%= leads_section_nav :leads %>
 
 <% content_for :header do %>
-  <%= parent_page @lead.name_was.presence || @lead.email_was, lead_path(@lead) %>
+  <%= parent_page @lead.name_was.presence || @lead.email_was.presence || @lead.phone_was.presence || "lead", lead_path(@lead) %>
 <% end %>
 
 <section class="settings settings--split">

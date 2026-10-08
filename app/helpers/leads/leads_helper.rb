@@ -1,7 +1,7 @@
 # The Leads plugin's screens: stage tags, the timeline's icons, the choices its selects offer.
 module Leads::LeadsHelper
   # A stage's tone in the core's status palette.
-  LEAD_STAGE_TONES = { "new" => "waiting", "nurturing" => "progress", "qualified" => "positive", "customer" => "positive", "lost" => "neutral" }.freeze
+  LEAD_STAGE_TONES = { "new" => "waiting", "nurturing" => "progress", "qualified" => "positive", "customer" => "positive", "lost" => "neutral", "spam" => "negative" }.freeze
 
   LEAD_ACTIVITY_ICONS = {
     "created" => "person-add", "captured" => "globe",
@@ -28,16 +28,17 @@ module Leads::LeadsHelper
     [ [ "Anyone’s", "" ], [ "Mine", "me" ] ] + User.active.people.ordered.map { [ it.display_name, it.id.to_s ] }
   end
 
-  # "Due today", "3 days overdue", "Due Oct 9".
-  def lead_task_due(task)
-    return "No date" if task.due_on.nil?
+  # When a follow-up is due, said for where it shows: under a "Due" column, "Today", "Oct 9" or
+  # "3 days late"; in a sentence (prefix: true), "Due today", "Due Oct 9". Done, it says when.
+  def lead_task_due(task, prefix: false)
+    return "#{"Done " if prefix}#{l(task.done_at.to_date, format: :short)}" if task.done?
+    return (prefix ? "No date" : "—") if task.due_on.nil?
 
     days = (task.due_on - Date.current).to_i
-    if task.done? then "Due #{l(task.due_on, format: :short)}"
-    elsif days.negative? then "#{pluralize(-days, "day")} overdue"
-    elsif days.zero? then "Due today"
-    elsif days == 1 then "Due tomorrow"
-    else "Due #{l(task.due_on, format: :short)}"
+    if days.negative? then "#{pluralize(-days, "day")} late"
+    elsif days.zero? then prefix ? "Due today" : "Today"
+    elsif days == 1 then prefix ? "Due tomorrow" : "Tomorrow"
+    else prefix ? "Due #{l(task.due_on, format: :short)}" : l(task.due_on, format: :short)
     end
   end
 

@@ -9,12 +9,13 @@ module Leads::Lead::Enrollable
   end
 
   # Whether the plugin may email the lead at all.
-  def sendable? = !unsubscribed? && !finished?
+  def sendable? = email.present? && !unsubscribed? && !finished?
 
   # Why the lead can't be enrolled in `sequence` now, or nil when it can.
   def enrollment_refusal(sequence)
-    if unsubscribed? then "#{display_name} has unsubscribed."
-    elsif finished? then "#{display_name} is #{stage == "lost" ? "lost" : "a customer"}."
+    if email.blank? then "#{display_name} has no email address yet."
+    elsif unsubscribed? then "#{display_name} has unsubscribed."
+    elsif finished? then "#{display_name} is #{{ "lost" => "lost", "spam" => "marked as spam" }.fetch(stage, "a customer")}."
     elsif sequence.steps.empty? then "“#{sequence.name}” has no emails yet."
     elsif enrollments.active.exists?(sequence: sequence) then "#{display_name} is already in “#{sequence.name}”."
     end

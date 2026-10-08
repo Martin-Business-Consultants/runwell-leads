@@ -19,8 +19,11 @@ Then switch it on in Settings › Plugins. Remove deletes its code and keeps its
 ## What it does
 
 - **Leads**: one per email address, with name, phone, company, owner, stage (`new`,
-  `nurturing`, `qualified`, `customer`, `lost`), score, where it came from, and what its forms
-  sent. Leads in the nav, with All leads, Follow-ups and Email sequences beside it.
+  `nurturing`, `qualified`, `customer`, `lost`, `spam`), score, where it came from, and what its
+  forms sent. Someone who rang needs no email: a name or phone is enough, though they can't be
+  sent sequences until they have one.
+- **Spam**: “Spam” on a lead moves it out of the lists (the Spam filter still shows it) and
+  stops its emails; the same address coming back from a form is ignored. “Not spam” puts it back. Leads in the nav, with All leads, Follow-ups and Email sequences beside it.
 - **From your website**: a form posts to `/leads/capture/<key>` (Settings › Leads shows the
   address, an HTML form and a `fetch` example). `email` is all it needs; `name` (or `first_name`
   and `last_name`), `phone` and `company` fill in the lead, `source` names the form, and

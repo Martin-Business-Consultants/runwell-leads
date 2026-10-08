@@ -3,8 +3,7 @@
 
 <%= render "layouts/shared/index_toolbar", new_text: "Add a sequence", new_path: (new_leads_sequence_path if can?(:manage_sequences)) %>
 
-<% if @sequences.any? %>
-  <section class="panel shadow center index-table">
+<section class="panel shadow center index-table">
     <table class="data-table">
       <thead>
         <tr><th>Sequence</th><th>Starts</th><th class="data-table__number">Emails</th><th class="data-table__number">In it now</th><th>Status</th><th></th></tr>
@@ -26,18 +25,13 @@
             <% end %>
           </tr>
         <% end %>
+        <% if @sequences.empty? %>
+          <tr>
+            <td colspan="6" class="txt-subtle txt-small">
+              No email sequences yet. A sequence is a few emails sent one after another, a delay apart: to every lead from your website, everyone who reaches a stage, or those you start it for.
+            </td>
+          </tr>
+        <% end %>
       </tbody>
     </table>
   </section>
-<% else %>
-  <div class="panel panel--centered flex flex-column gap-half">
-    <p class="txt-medium">No email sequences yet.</p>
-    <p class="txt-small txt-subtle margin-none">A sequence is a few emails sent one after another, a delay apart: to every lead from your website, everyone who reaches a stage, or those you start it for.</p>
-    <% if can?(:manage_sequences) %>
-      <%= link_to new_leads_sequence_path, class: "btn btn--link center" do %>
-        <span>Write your first sequence</span>
-        <%= icon_tag "arrow-right" %>
-      <% end %>
-    <% end %>
-  </div>
-<% end %>

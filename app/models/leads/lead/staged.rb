@@ -4,13 +4,14 @@
 module Leads::Lead::Staged
   extend ActiveSupport::Concern
 
-  STAGES = %w[new nurturing qualified customer lost].freeze
+  STAGES = %w[new nurturing qualified customer lost spam].freeze
   # Stages a lead is done being nurtured in.
-  FINISHED_STAGES = %w[customer lost].freeze
+  FINISHED_STAGES = %w[customer lost spam].freeze
 
   included do
     scope :in_stage, ->(stage) { where(stage: stage) }
     scope :open, -> { where.not(stage: FINISHED_STAGES) }
+    scope :not_spam, -> { where.not(stage: "spam") }
   end
 
   class_methods do
@@ -19,7 +20,7 @@ module Leads::Lead::Staged
       counts = group(:stage).count
       [ [ "Open (#{counts.except(*FINISHED_STAGES).values.sum})", "open" ] ] +
         STAGES.map { [ "#{it.humanize} (#{counts.fetch(it, 0)})", it ] } +
-        [ [ "All (#{counts.values.sum})", "all" ] ]
+        [ [ "All but spam (#{counts.except("spam").values.sum})", "all" ] ]
     end
   end
 

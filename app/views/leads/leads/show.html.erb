@@ -16,12 +16,23 @@
           <span>Edit</span>
           <kbd class="hide-on-touch">E</kbd>
         <% end %>
+        <% if @lead.spam? %>
+          <%= button_to lead_spam_path(@lead), method: :delete, class: "btn btn--circle-mobile" do %>
+            <%= icon_tag "check" %>
+            <span>Not spam</span>
+          <% end %>
+        <% elsif !@lead.client %>
+          <%= button_to lead_spam_path(@lead), class: "btn btn--circle-mobile" do %>
+            <%= icon_tag "remove" %>
+            <span>Spam</span>
+          <% end %>
+        <% end %>
         <% if @lead.client %>
           <%= link_to client_path(@lead.client), class: "btn btn--circle-mobile" do %>
             <%= icon_tag "arrow-right" %>
             <span><%= @lead.client.name %></span>
           <% end %>
-        <% else %>
+        <% elsif !@lead.spam? %>
           <%= button_to lead_conversion_path(@lead), class: "btn btn--link btn--circle-mobile" do %>
             <%= icon_tag "check-circle" %>
             <span>Make a <%= term(:client).downcase %></span>
@@ -86,7 +97,7 @@
               <% end %>
               <%= link_to task.title, edit_leads_task_path(task), class: class_names("txt-ink overflow-ellipsis min-width", "txt-subtle leads-done": task.done?) %>
               <hr class="separator--horizontal flex-item-grow txt-subtle" aria-hidden="true">
-              <span class="<%= class_names("txt-nowrap txt-x-small", "txt-negative": task.overdue?, "txt-subtle": !task.overdue?) %>"><%= lead_task_due(task) %></span>
+              <span class="<%= class_names("txt-nowrap txt-x-small", "txt-negative": task.overdue?, "txt-subtle": !task.overdue?) %>"><%= lead_task_due(task, prefix: true) %></span>
               <%= person_tag task.assignee, fallback: "Unassigned" %>
             </li>
           <% end %>
@@ -144,6 +155,8 @@
             <button type="submit" class="btn btn--link">Start</button>
           <% end %>
         </details>
+      <% elsif @lead.email.blank? %>
+        <p class="txt-subtle txt-x-small margin-none">Add their email address to send them a sequence.</p>
       <% elsif sequences.none? %>
         <p class="txt-subtle txt-x-small margin-none"><%= link_to "Write a sequence", leads_sequences_path, class: "txt-link" %> to email leads over time.</p>
       <% end %>
@@ -160,7 +173,14 @@
         <dt>Stage</dt><dd><%= lead_stage_tag @lead.stage %></dd>
         <dt>Score</dt><dd><%= @lead.score %> <span class="txt-subtle">of <%= Leads::Settings.current.threshold %> to qualify</span></dd>
         <dt>Owner</dt><dd><%= person_tag @lead.owner, fallback: "Unassigned" %></dd>
-        <dt>Email</dt><dd><%= mail_to @lead.email, class: "txt-link" %></dd>
+        <dt>Email</dt>
+        <dd>
+          <% if @lead.email.present? %>
+            <%= mail_to @lead.email, class: "txt-link" %>
+          <% else %>
+            <span class="txt-subtle">None yet</span>
+          <% end %>
+        </dd>
         <% if @lead.phone.present? %>
           <dt>Phone</dt><dd><%= @lead.phone %></dd>
         <% end %>
