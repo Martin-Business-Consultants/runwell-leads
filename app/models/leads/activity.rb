@@ -28,11 +28,12 @@ module Leads
       when "won" then "won it#{" as #{data["client"]}" if data["client"]}"
       when "lost" then "lost it: #{Lead::LOST_REASONS[data["reason"]] || "no reason"}"
       when "reopened" then "reopened it"
+      when "earlier" then data["summary"].to_s.sub(/\A\p{Lu}(?=\p{Ll})/) { it.downcase }.presence || "did something before 3.0"
       else LOGGED[kind] ? "logged #{LOGGED[kind].downcase == "email" ? "an email" : "a #{LOGGED[kind].downcase}"}" : kind.humanize.downcase
       end
     end
 
-    def author = user&.display_name || (kind.in?(%w[created submitted reopened]) ? "The website" : "Someone")
+    def author = user&.display_name || (kind == "earlier" ? "Leads 2" : kind.in?(%w[created submitted reopened]) ? "The website" : "Someone")
 
     private
       def next_step_text

@@ -45,6 +45,16 @@ It answers `201 {"ok":true,"id":12,"outcome":"created"}` for a new lead, `200` w
 (`again`, `returned`, `duplicate`), `422` when there's no name, email or company, `404` for a
 form that's been deleted, and `429` past the limit.
 
+## Upgrading from Leads 2
+
+3.0 replaces Leads 2 (scoring, email sequences and follow-ups, written for Runwell 2 and
+the names Runwell 5 renamed). Updating sets 2's tables aside (`leads_v2_*`, kept, unread) and brings
+its leads across: open ones (new, nurturing, qualified) at the first stage, customers won, lost
+and spam lost; their owner, client, what their forms sent and their history; each one's earliest
+open follow-up as its next step. The capture key comes across as a form, so the address your
+website already posts to keeps working. Sequences, scores and templates don't come across: their
+tables stay, unread.
+
 Owners and managers mark leads won (`win_leads`); deleting needs Runwell's delete permission.
 Requires Runwell 5.31 or later.
 
