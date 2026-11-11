@@ -1,0 +1,41 @@
+<%# Winning a lead (Leads::WinsController#new): exactly what will be made before it's made. %>
+<%= parent_page @lead.display_name, lead_path(@lead) %>
+<% lead = @lead %>
+<% client_options = [ [ "A new " + term(:client).downcase, "" ] ] + Client.where(status: "active").order(:name).map { [ it.name, it.id ] } %>
+<div class="leads-narrow">
+  <%= card "Win #{lead.display_name}", hint: "It closes as won and is copied to your #{term(:client, count: 2).downcase}. Its history stays with the lead." do %>
+    <%= form_with url: lead_win_path(lead), scope: :win, class: "leads-form" do |form| %>
+      <label class="field">
+        <span class="field__label"><%= term(:client) %></span>
+        <%= form.select :client_id, client_options, { selected: @match&.id.to_s } %>
+        <span class="field__hint"><% if @match %><%= @match.name %> is on file already, so it’s picked: more business from them. Pick “A new <%= term(:client).downcase %>” to make another.<% else %>Pick one on file for more business from someone you work for.<% end %></span>
+      </label>
+      <label class="field">
+        <span class="field__label">A new <%= term(:client).downcase %>’s name</span>
+        <%= form.text_field :client_name, value: lead.company || lead.display_name, maxlength: 120, autocomplete: "off" %>
+        <span class="field__hint">Used only for a new <%= term(:client).downcase %>.</span>
+      </label>
+      <% if lead.name || lead.email %>
+        <div class="leads-switch-row">
+          <%= switch_tag(screen_reader_label: "Add #{lead.name || lead.email} as its contact") { hidden_field_tag("win[add_contact]", "0", id: nil) + check_box_tag("win[add_contact]", "1", true, id: "win_add_contact") } %>
+          <span>Add <%= lead.name || lead.email %> as its contact</span>
+        </div>
+        <p class="small muted">With <%= [ lead.email, lead.phone ].compact.join(" and ").presence || "no address" %>. Skipped if that address is on file already. They don’t get the portal until you invite them.</p>
+      <% end %>
+      <div class="grid-2">
+        <label class="field">
+          <span class="field__label">Start a first piece of <%= term(:work).downcase %></span>
+          <%= form.select :work_label, [ [ "Not now", "" ] ] + WorkType.cached.reject(&:archived?).map { [ it.name_one, it.key ] } %>
+        </label>
+        <label class="field">
+          <span class="field__label">Titled</span>
+          <%= form.text_field :work_title, value: lead.company || lead.display_name, maxlength: 120, autocomplete: "off" %>
+        </label>
+      </div>
+      <div class="button-row">
+        <%= submit_button form, "Mark it won" %>
+        <%= link_to "Cancel", lead_path(lead), class: button_classes(variant: :ghost), data: { keys: "esc" } %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

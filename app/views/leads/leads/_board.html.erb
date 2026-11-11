@@ -1,0 +1,40 @@
+<%# locals: (board:) %>
+<%# Open leads by stage, a column each: drag a card to another column to move it there (the core's
+    drag-and-drop controller, posting to Leads::DropsController). %>
+<div class="leads-board" data-controller="drag-and-drop" data-drag-and-drop-dragged-item-class="drag-and-drop__dragged-item"
+     data-drag-and-drop-hover-container-class="drag-and-drop__hover-container"
+     data-action="dragstart->drag-and-drop#dragStart dragover->drag-and-drop#dragOver drop->drag-and-drop#drop dragend->drag-and-drop#dragEnd">
+  <% board.each do |stage, column| %>
+    <%# herb:key stage.id %>
+    <section class="leads-board__column" data-drag-and-drop-target="container" data-drag-and-drop-url="<%= leads_stage_drop_path(stage, "__id__") %>" aria-label="<%= stage.name %>">
+      <header class="leads-board__head">
+        <h2 class="leads-board__title"><%= stage.name %></h2>
+        <span class="count count--quiet"><%= column[:count] %></span>
+      </header>
+      <ol class="leads-board__cards" data-drag-drop-item-container>
+        <% column[:leads].each do |lead| %>
+          <%# herb:key lead.id %>
+          <li class="leads-card" draggable="true" data-drag-and-drop-target="item" data-id="<%= lead.id %>" data-filter-target="item">
+            <%= link_to lead.display_name, lead_path(lead), class: "leads-card__name" %>
+            <% if lead.company && lead.name %>
+              <span class="leads-card__company muted"><%= lead.company %></span>
+            <% end %>
+            <% if lead.next_step || lead.next_step_on %>
+              <span class="leads-card__next small"><%= lead_next_step(lead) %></span>
+            <% end %>
+            <span class="leads-card__foot">
+              <%= person_tag lead.owner, fallback: "Nobody" %>
+              <%= lead_attention_badge(lead) %>
+              <% if lead.value_cents %>
+                <span class="small muted"><%= lead_value(lead) %></span>
+              <% end %>
+            </span>
+          </li>
+        <% end %>
+      </ol>
+      <% if column[:count] > column[:leads].size %>
+        <p class="small muted leads-board__more"><%= column[:count] - column[:leads].size %> more: <%= link_to "see them in the table", leads_path(request.query_parameters.merge("view" => "table", "stage" => stage.id)) %></p>
+      <% end %>
+    </section>
+  <% end %>
+</div>

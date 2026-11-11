@@ -1,0 +1,12 @@
+<% content_for :reason, "You're getting this because you're told about new leads (Settings > Plugins > Leads)." %>
+<%= @returned ? "#{@lead.display_name} is back: their lead was lost, and they sent the form again." : "A new lead: #{@lead.display_name}#{", from #{@lead.source}" if @lead.source}." %>
+<% if @lead.referral? %>Referred by <%= @lead.referrer_name || @lead.referrer_email %>.
+<% end %>
+<%= [ @lead.name, @lead.company, @lead.email, @lead.phone ].compact.join("\n") %>
+<% if @lead.message %>
+
+> <%= strip_tags(@lead.message).strip %>
+<% end %>
+
+<%= @lead.owner ? "#{@lead.owner.display_name} has it." : "Nobody has it yet: open it to claim it." %>
+<%= @url %>

@@ -1,0 +1,7 @@
+<%# Changing a lead's details; its stage, owner, value and next step change on its page. %>
+<%= parent_page @lead.display_name, lead_path(@lead) %>
+<div class="leads-narrow">
+  <%= card "Change #{@lead.display_name}" do %>
+    <%= render "leads/leads/form", lead: @lead %>
+  <% end %>
+</div>

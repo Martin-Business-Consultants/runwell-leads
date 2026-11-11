@@ -1,0 +1,50 @@
+<%# Leads (Leads::LeadsController#index): a table of leads, filtered by what's open, stage, owner and
+    source, with the bulk bar; or the board, open leads by stage. %>
+<% owner_choices = [ [ "Anyone", "anyone" ], [ "Mine", "me" ], [ "Nobody yet", "nobody" ] ] + leads_people.map { [ it.display_name, it.id.to_s ] } %>
+<% content_for :index_filters do %>
+  <%= render "layouts/shared/quick_filter", title: "Show…", param: :show, current: @show, options: Leads::LeadsController::SHOWS.map { |key, label| [ label, key ] } %>
+  <%= render "layouts/shared/quick_filter", title: "Owner…", param: :owner, current: @owner, options: owner_choices %>
+  <% if @view == "table" %>
+    <%= render "layouts/shared/quick_filter", title: "Stage…", param: :stage, current: @stage&.id.to_s.presence || "", options: [ [ "Any stage", "" ] ] + @stages.map { [ it.name, it.id.to_s ] } %>
+  <% end %>
+  <%= render "layouts/shared/quick_filter", title: "Source…", param: :source, current: @source.to_s, options: [ [ "Any source", "" ] ] + Leads::Lead.sources.map { [ it, it ] } %>
+<% end %>
+<% if @view == "table" %>
+  <% content_for :index_bulk do %>
+    <%= bulk_bar delete: (can?(:delete_records) ? bulk_delete(leads_bulk_path, noun: "leads", message: "They’re gone for good, with their history. Lose them instead to keep them.") : nil) do %>
+      <%= bulk_menu leads_bulk_path, method: :patch, name: "lead[owner_id]", label: "Owner", choices: lead_owner_options %>
+      <%= bulk_menu leads_bulk_path, method: :patch, name: "lead[stage_id]", label: "Stage", choices: lead_stage_options %>
+      <%= bulk_menu leads_bulk_path, method: :patch, name: "lead[lost_reason]", label: "Lose", choices: Leads::Lead::LOST_REASONS.map { |key, label| [ label, key ] } %>
+    <% end %>
+  <% end %>
+<% end %>
+<%= render "layouts/shared/index_toolbar", view: @view, extra_views: [ [ "board", "Board", "board" ] ], new_text: "Add a lead", new_path: new_lead_path %>
+
+<% if @view == "board" %>
+  <%= render "leads/leads/board", board: @board %>
+<% elsif @leads.any? %>
+  <div class="table-wrap">
+    <table class="table leads-table" data-controller="pagination" data-pagination-discard-frame-value="true">
+      <thead>
+        <tr>
+          <%= bulk_select_all_header %>
+          <th>Lead</th>
+          <th>Stage</th>
+          <th>Owner</th>
+          <th>Next step</th>
+          <th>Source</th>
+          <th class="leads-table__number">Value</th>
+          <th>Came in</th>
+        </tr>
+      </thead>
+      <tbody id="<%= pagination_frame_id_for(:lead_rows, @page.number) %>">
+        <%= render partial: "leads/leads/row", collection: @leads, as: :lead %>
+        <%= table_next_page_row :lead_rows, @page, columns: 8 %>
+      </tbody>
+    </table>
+  </div>
+<% elsif Leads::Lead.exists? %>
+  <%= render "layouts/shared/empty", text: "No leads match.", action_text: "Show every open lead", action_path: leads_path %>
+<% else %>
+  <%= render "layouts/shared/empty", text: "No leads yet. They arrive from your website’s forms once one is set up in the leads’ settings, or add one by hand.", action_text: "Add a lead", action_path: new_lead_path %>
+<% end %>

@@ -1,0 +1,5 @@
+<% content_for :reason, "You're getting this because a lead was given to you." %>
+<%= @by&.display_name || "Someone" %> gave you a lead: <%= @lead.display_name %>. It's at <%= @lead.stage&.name %>.
+<%= @lead.next_step ? "Next: #{@lead.next_step}#{", by #{l(@lead.next_step_on, format: "%A, %B %-d")}" if @lead.next_step_on}." : "It has no next step yet." %>
+
+<%= @url %>

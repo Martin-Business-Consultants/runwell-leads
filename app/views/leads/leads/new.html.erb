@@ -1,0 +1,7 @@
+<%# Adding a lead by hand (a call, an introduction, a card from an event). %>
+<%= parent_page "Leads", leads_path %>
+<div class="leads-narrow">
+  <%= card "Add a lead", hint: "At least a name, an email or a company. Whoever’s told about new leads hears of it." do %>
+    <%= render "leads/leads/form", lead: @lead %>
+  <% end %>
+</div>

@@ -1,0 +1,53 @@
+<%# locals: (lead:) %>
+<%# A lead's details, for adding one by hand and changing one. %>
+<%= form_with model: lead, url: (lead.persisted? ? lead_path(lead) : leads_path), scope: :lead, class: "leads-form" do |form| %>
+  <% if lead.errors.any? %>
+    <%= callout lead.errors.full_messages.to_sentence + ".", tone: :danger %>
+  <% end %>
+  <div class="grid-2">
+    <label class="field">
+      <span class="field__label">Name</span>
+      <%= form.text_field :name, autofocus: true, autocomplete: "off", maxlength: 120 %>
+    </label>
+    <label class="field">
+      <span class="field__label">Company</span>
+      <%= form.text_field :company, autocomplete: "off", maxlength: 120 %>
+    </label>
+    <label class="field">
+      <span class="field__label">Email</span>
+      <%= form.email_field :email, autocomplete: "off" %>
+    </label>
+    <label class="field">
+      <span class="field__label">Phone</span>
+      <%= form.telephone_field :phone, autocomplete: "off" %>
+    </label>
+    <label class="field">
+      <span class="field__label">Website</span>
+      <%= form.text_field :website, autocomplete: "off", placeholder: "example.com" %>
+    </label>
+    <label class="field">
+      <span class="field__label">Where they came from</span>
+      <%= form.text_field :source, autocomplete: "off", placeholder: "A referral from Sam, an event…" %>
+    </label>
+  </div>
+  <div class="field">
+    <span class="field__label">What they need</span>
+    <%= rich_text_field form, :message, placeholder: "What they’re after, in their words" %>
+  </div>
+  <% unless lead.persisted? %>
+    <div class="grid-2">
+      <label class="field">
+        <span class="field__label">Owner</span>
+        <%= form.select :owner_id, lead_owner_options, { selected: lead.owner_id || "nobody" } %>
+      </label>
+      <label class="field">
+        <span class="field__label">Stage</span>
+        <%= form.select :stage_id, lead_stage_options, { selected: lead.stage_id || Leads::Stage.first_stage&.id } %>
+      </label>
+    </div>
+  <% end %>
+  <div class="button-row">
+    <%= submit_button form, lead.persisted? ? "Save" : "Add the lead" %>
+    <%= link_to "Cancel", (lead.persisted? ? lead_path(lead) : leads_path), class: button_classes(variant: :ghost), data: { keys: "esc" } %>
+  </div>
+<% end %>

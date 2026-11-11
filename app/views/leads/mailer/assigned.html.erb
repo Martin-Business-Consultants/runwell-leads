@@ -1,0 +1,10 @@
+<% content_for :preheader, @lead.next_step.presence || "It’s at #{@lead.stage&.name}." %>
+<% content_for :reason, "You’re getting this because a lead was given to you." %>
+<%= mail_heading "#{@lead.display_name} is yours" %>
+<p><%= @by&.display_name || "Someone" %> gave you this lead<% if @lead.company && @lead.name %> from <strong><%= @lead.company %></strong><% end %>. It’s at <strong><%= @lead.stage&.name %></strong>.</p>
+<% if @lead.next_step %>
+  <p>Next: <%= @lead.next_step %><% if @lead.next_step_on %>, by <%= l(@lead.next_step_on, format: "%A, %B %-d") %><% end %>.</p>
+<% else %>
+  <p>It has no next step yet: give it one when you’ve been in touch.</p>
+<% end %>
+<%= mail_button "Open the lead", @url %>

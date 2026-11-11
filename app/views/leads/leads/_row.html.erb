@@ -1,0 +1,20 @@
+<%# locals: (lead:) %>
+<%# One lead in the table: who, where it stands, who has it, what's next, where it came from. %>
+<tr id="<%= dom_id(lead, :row) %>" data-filter-target="item">
+  <%= bulk_select_cell lead, lead.display_name %>
+  <td class="table__grow">
+    <%= link_to lead.display_name, lead_path(lead), class: "leads-name" %>
+    <% if lead.company && lead.name %>
+      <span class="muted"><%= lead.company %></span>
+    <% end %>
+    <% if lead.submissions_count > 1 %>
+      <span class="faint" title="Sent the form <%= lead.submissions_count %> times">×<%= lead.submissions_count %></span>
+    <% end %>
+  </td>
+  <td><span class="leads-badges"><%= lead_stage_badge(lead) %><%= lead_attention_badge(lead) %></span></td>
+  <td><%= person_tag lead.owner, fallback: "Nobody" %></td>
+  <td class="leads-table__next"><%= lead_next_step(lead) %></td>
+  <td class="muted"><%= lead.source %></td>
+  <td class="leads-table__number"><%= lead_value(lead) %></td>
+  <td class="muted"><%= time_ago(lead.created_at, short: true) %></td>
+</tr>

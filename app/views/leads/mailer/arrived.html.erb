@@ -1,0 +1,18 @@
+<% content_for :preheader, strip_tags(@lead.message.to_s).squish.truncate(120).presence || "From #{@lead.source || "your website"}" %>
+<% content_for :reason, "You’re getting this because you’re told about new leads (Settings › Plugins › Leads)." %>
+<%= mail_heading(@returned ? "#{@lead.display_name} is back" : "A new lead: #{@lead.display_name}") %>
+<p>
+  <% if @returned %>Their lead was lost, and they sent the form again, so it’s open again at the first stage.<% else %>It came in<% if @lead.source %> from <strong><%= @lead.source %></strong><% end %>.<% end %>
+  <% if @lead.referral? %>Referred by <%= @lead.referrer_name || @lead.referrer_email %>.<% end %>
+</p>
+<p>
+  <% if @lead.name %><strong><%= @lead.name %></strong><br><% end %>
+  <% if @lead.company %><%= @lead.company %><br><% end %>
+  <% if @lead.email %><%= @lead.email %><br><% end %>
+  <% if @lead.phone %><%= @lead.phone %><% end %>
+</p>
+<% if @lead.message %>
+  <%= mail_quote strip_tags(@lead.message).strip.truncate(1200) %>
+<% end %>
+<p><% if @lead.owner %><%= @lead.owner.display_name %> has it.<% else %>Nobody has it yet: open it to claim it.<% end %></p>
+<%= mail_button "Open the lead", @url %>

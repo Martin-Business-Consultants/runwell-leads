@@ -1,0 +1,80 @@
+<%= render "settings/header", current: :leads %>
+<%# The leads' settings (Leads::SettingsController): who's told when a lead comes in, the stages an
+    open lead moves through, and the forms that send leads in, each with its own address. %>
+<div class="settings-page">
+  <section class="settings-section">
+    <header class="settings-section__head">
+      <h2>Who’s told</h2>
+      <p class="settings-section__description">Who gets an email when a lead comes in, or a lost one comes back. With nobody picked, every owner and manager does. Whoever a lead is given to is always told.</p>
+    </header>
+    <%= form_with model: @setting, url: leads_settings_path, method: :patch, scope: :setting, data: { controller: "form" } do |form| %>
+      <%= hidden_field_tag "setting[notify_user_ids][]", "", id: nil %>
+      <%= form.select :notify_user_ids, leads_people.map { [ it.display_name, it.id ] }, { selected: @setting.notify_user_ids }, multiple: true, aria: { label: "Who’s told" }, data: { action: "change->form#submit" } %>
+    <% end %>
+  </section>
+
+  <section class="settings-section">
+    <header class="settings-section__head">
+      <h2>Stages</h2>
+      <p class="settings-section__description">The steps an open lead moves through, in order. New leads land in the first. Won and Lost aren’t stages: they close a lead.</p>
+    </header>
+    <ol class="settings-list leads-stages">
+      <% @stages.each_with_index do |stage, index| %>
+        <%# herb:key stage.id %>
+        <li class="list-row leads-stage">
+          <%= form_with model: stage, url: leads_stage_path(stage), scope: :stage, method: :patch, namespace: "stage_#{stage.id}", class: "leads-stage__name", data: { controller: "form" } do |form| %>
+            <%= form.text_field :name, maxlength: 40, aria: { label: "Stage name" }, data: { action: "change->form#submit" } %>
+          <% end %>
+          <span class="small muted leads-stage__count"><%= pluralize(@open_counts.fetch(stage.id, 0), "open lead") %></span>
+          <div class="list-row__actions">
+            <% if index.positive? %>
+              <%= button_to leads_stage_path(stage), method: :patch, params: { move: "up" }, class: "icon-button", title: "Move up", aria: { label: "Move #{stage.name} up" } do %><%= icon_tag "arrow-up" %><% end %>
+            <% end %>
+            <% if @stages.size > 1 && !@used_stage_ids.include?(stage.id) %>
+              <%= render "layouts/shared/delete_dialog", name: stage.name, path: leads_stage_path(stage), message: "No lead is in it, so nothing moves." %>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ol>
+    <%= form_with url: leads_stages_path, scope: :stage, class: "leads-inline-add", namespace: "new_stage" do |form| %>
+      <%= form.text_field :name, required: true, maxlength: 40, placeholder: "Discovery call", autocomplete: "off", aria: { label: "New stage" } %>
+      <button type="submit" class="btn btn--secondary btn--sm"><%= icon_tag "add" %> <span>Add a stage</span></button>
+    <% end %>
+  </section>
+
+  <section class="settings-section" id="forms">
+    <header class="settings-section__head">
+      <h2>Forms that send leads in</h2>
+      <p class="settings-section__description">Each form posts its fields, as JSON or a form, to its own address. Name, email, phone, company, website and message become the lead; everything else (campaign, landing page, answers) is kept with it. The same submission sent twice, or the same email again, joins the lead rather than making another. Check for bots on your website before posting.</p>
+    </header>
+    <% if @keys.any? %>
+      <ul class="settings-list">
+        <% @keys.each do |key| %>
+          <%# herb:key key.id %>
+          <li class="list-row leads-key">
+            <div class="list-row__content">
+              <p class="list-row__title"><%= key.name %></p>
+              <p class="list-row__desc"><%= pluralize(key.leads_count, "lead") %><% if key.last_used_at %>, the last <%= time_ago(key.last_used_at) %><% else %>, none yet<% end %></p>
+              <%= copy_field leads_capture_url(key.token) %>
+            </div>
+            <div class="list-row__actions">
+              <%= render "layouts/shared/delete_dialog", name: key.name, path: leads_capture_key_path(key), message: "Its address stops taking leads at once. Leads it sent stay." %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="muted">No forms yet: add one, then paste its address into your website’s form.</p>
+    <% end %>
+    <%= form_with url: leads_capture_keys_path, scope: :capture_key, class: "leads-inline-add", namespace: "new_key" do |form| %>
+      <%= form.text_field :name, required: true, maxlength: 60, placeholder: "Website contact form", autocomplete: "off", aria: { label: "Form name" } %>
+      <button type="submit" class="btn btn--secondary btn--sm"><%= icon_tag "add" %> <span>Add a form</span></button>
+    <% end %>
+    <details class="leads-howto">
+      <summary>What to send</summary>
+      <%= code_block %(curl -X POST #{leads_capture_url("YOUR-FORM-KEY-FROM-ABOVE")} \\\n  -H "Content-Type: application/json" \\\n  -d '{"name":"Sam Lee","email":"sam@example.com","company":"Example Co","message":"We need a new website","source":"Homepage","utm_campaign":"spring","external_id":"form-123"}'), language: "bash" %>
+      <p class="small muted">Answers 201 with the lead’s id when it’s new, 200 when it joined one, 422 when there’s no name, email or company, and 404 once its form is deleted. external_id (any id your website gives the submission) stops a resend counting twice. A referral sends referral_company, referral_contact, referral_email, referral_phone and referral_website: the lead is the business referred, and the sender is kept as who referred them.</p>
+    </details>
+  </section>
+</div>

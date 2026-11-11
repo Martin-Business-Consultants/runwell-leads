@@ -1,0 +1,216 @@
+<%# A lead (Leads::LeadsController#show): who they are and what they said, then logging a call or
+    note with what happens next, and its history; beside it, where it stands (stage, owner, next
+    step, value), how to reach them and where they came from. %>
+<%= parent_page "Leads", leads_path %>
+<% lead = @lead %>
+<div class="leads-page">
+  <header class="leads-page__header">
+    <div class="leads-page__heading">
+      <h1 class="leads-page__title"><%= lead.display_name %></h1>
+      <p class="leads-page__meta">
+        <%= lead_stage_badge(lead) %>
+        <%= lead_attention_badge(lead) %>
+        <% if lead.company && lead.name %>
+          <span><%= lead.company %></span>
+        <% end %>
+        <span class="muted">came in <%= time_ago(lead.created_at) %><% if lead.source %> from <%= lead.source %><% end %></span>
+      </p>
+    </div>
+    <div class="button-row">
+      <% if lead.open? && lead.owner.nil? %>
+        <%= action_button "Claim it", lead_claim_path(lead), variant: :primary, size: :sm %>
+      <% end %>
+      <% if lead.open? && can?(:win_leads) %>
+        <%= button_link "Won", new_lead_win_path(lead), size: :sm, icon: "check-circle" %>
+      <% end %>
+      <% if lead.open? %>
+        <%= dialog "Lose #{lead.display_name}?", trigger: "Lost", trigger_class: button_classes(size: :sm) do %>
+          <%= form_with url: lead_loss_path(lead), scope: :loss, class: "leads-form" do |form| %>
+            <label class="field">
+              <span class="field__label">Why</span>
+              <%= form.select :reason, Leads::Lead::LOST_REASONS.map { |key, label| [ label, key ] }, { include_blank: "Pick why…" }, required: true %>
+            </label>
+            <label class="field">
+              <span class="field__label">Anything to add</span>
+              <%= form.text_field :note, maxlength: 300, autocomplete: "off", placeholder: "Went with a cheaper option" %>
+            </label>
+            <p class="small muted">It’s kept, and reopens by itself if they send the form again.</p>
+            <%= dialog_actions { submit_button(form, "Lose it", variant: :danger) } %>
+          <% end %>
+        <% end %>
+      <% elsif lead.lost? %>
+        <%= action_button "Reopen", lead_reopening_path(lead), size: :sm %>
+      <% end %>
+      <% if lead.won? && lead.client %>
+        <%= button_link lead.client.name, main_app.client_path(lead.client), size: :sm, icon: "arrow-up-right" %>
+      <% end %>
+      <%= link_to edit_lead_path(lead), class: "icon-button", title: "Change details", data: { keys: "e" } do %>
+        <%= icon_tag "pencil" %><span class="visually-hidden">Change <%= lead.display_name %>’s details</span>
+      <% end %>
+      <% if can?(:delete_records) %>
+        <%= render "layouts/shared/delete_dialog", name: lead.display_name, path: lead_path(lead), message: "Gone for good, with its history. Lose it instead to keep it." %>
+      <% end %>
+    </div>
+  </header>
+
+  <div class="leads-page__columns">
+    <div class="leads-page__main stack">
+      <% if lead.message.present? %>
+        <%= card "What they said" do %>
+          <div class="leads-message"><%= rich_text lead.message %></div>
+        <% end %>
+      <% end %>
+
+      <% if (known = lead.known_contact) && !lead.won? %>
+        <%= callout tone: :attention do %>
+          <p><%= known.name %> is already a contact at <%= link_to known.client.name, main_app.client_path(known.client) %>. <%= lead.open? ? "When it’s won, add it to them rather than making a new client." : "" %></p>
+        <% end %>
+      <% end %>
+
+      <%= card "Log a call, email, meeting or note" do %>
+        <%= form_with url: lead_activities_path(lead), scope: :activity, class: "leads-form", data: { controller: "form" } do |form| %>
+          <div class="leads-kinds" role="radiogroup" aria-label="What it was">
+            <% Leads::Activity::LOGGED.each do |kind, label| %>
+              <%# herb:key kind %>
+              <label class="pill leads-kind">
+                <%= form.radio_button :kind, kind, checked: kind == "call" %>
+                <span><%= label %></span>
+              </label>
+            <% end %>
+          </div>
+          <%= rich_text_field form, :body, placeholder: "Who you spoke to, what they need, budget, timing, what you agreed…", staff: true %>
+          <% if lead.open? %>
+            <div class="leads-form__row">
+              <label class="field leads-form__grow">
+                <span class="field__label">Next step</span>
+                <%= form.text_field :next_step, value: lead.next_step, maxlength: 200, autocomplete: "off", placeholder: "Send the proposal" %>
+              </label>
+              <label class="field">
+                <span class="field__label">By</span>
+                <%= date_input form, :next_step_on, value: lead.next_step_on %>
+              </label>
+              <label class="field">
+                <span class="field__label">Stage</span>
+                <%= form.select :stage_id, lead_stage_options, { selected: lead.stage_id } %>
+              </label>
+            </div>
+          <% end %>
+          <div class="button-row"><%= submit_button form, "Log it", size: :sm %></div>
+        <% end %>
+      <% end %>
+
+      <%= card "History", flush: true do %>
+        <ol class="leads-history">
+          <% @activities.each do |activity| %>
+            <%# herb:key activity.id %>
+            <li class="<%= class_names("leads-history__item", "leads-history__item--logged": activity.logged?) %>">
+              <span class="leads-history__icon"><%= icon_tag lead_activity_icon(activity) %></span>
+              <div class="leads-history__content">
+                <p class="leads-history__line">
+                  <strong><%= activity.author %></strong> <%= activity.summary(stages: @stage_names, people: @people) %>
+                  <span class="faint"><%= time_ago(activity.created_at) %></span>
+                </p>
+                <% if activity.body.present? %>
+                  <div class="leads-history__body">
+                    <% if activity.logged? %>
+                      <%= rich_text activity.body %>
+                    <% else %>
+                      <%= simple_format(activity.body, {}, wrapper_tag: "span") %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              <% if activity.removable_by?(Current.user) %>
+                <%= render "layouts/shared/delete_dialog", name: "this #{Leads::Activity::LOGGED[activity.kind].downcase}", path: lead_activity_path(lead, activity), message: "It comes off the lead’s history." %>
+              <% end %>
+            </li>
+          <% end %>
+        </ol>
+      <% end %>
+    </div>
+
+    <aside class="leads-page__aside stack">
+      <%= card "Where it stands" do %>
+        <dl class="details">
+          <dt>Stage</dt>
+          <dd>
+            <% if lead.open? %>
+              <%= form_with model: lead, url: lead_path(lead), scope: :lead, method: :patch, namespace: "stage", data: { controller: "form" } do |form| %>
+                <input type="hidden" name="inline" value="1">
+                <%= form.select :stage_id, lead_stage_options, {}, class: "select--sm", aria: { label: "Stage" }, data: { action: "change->form#submit" } %>
+              <% end %>
+            <% else %>
+              <%= lead_stage_badge(lead) %>
+            <% end %>
+          </dd>
+          <dt>Owner</dt>
+          <dd>
+            <%= form_with model: lead, url: lead_path(lead), scope: :lead, method: :patch, namespace: "owner", data: { controller: "form" } do |form| %>
+              <input type="hidden" name="inline" value="1">
+              <%= form.select :owner_id, lead_owner_options, { selected: lead.owner_id || "nobody" }, class: "select--sm", aria: { label: "Owner" }, data: { action: "change->form#submit" } %>
+            <% end %>
+          </dd>
+          <dt>Value</dt>
+          <dd>
+            <%= form_with model: lead, url: lead_path(lead), scope: :lead, method: :patch, namespace: "value", class: "leads-inline", data: { controller: "form" } do |form| %>
+              <input type="hidden" name="inline" value="1">
+              <%= money_field form, :value_cents, aria: { label: "What it may be worth" }, placeholder: "0", data: { action: "change->form#submit" } %>
+            <% end %>
+          </dd>
+        </dl>
+        <% if lead.open? %>
+          <%= form_with model: lead, url: lead_path(lead), scope: :lead, method: :patch, namespace: "next", class: "leads-form" do |form| %>
+            <input type="hidden" name="inline" value="1">
+            <label class="field">
+              <span class="field__label">Next step</span>
+              <%= form.text_field :next_step, maxlength: 200, autocomplete: "off", placeholder: "Call back" %>
+            </label>
+            <div class="leads-form__row">
+              <%= date_input form, :next_step_on, aria: { label: "By" } %>
+              <%= submit_button form, "Save", variant: :secondary, size: :sm %>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <%= card "Reaching them" do %>
+        <dl class="details">
+          <% if lead.name %>
+            <dt>Name</dt><dd><%= lead.name %></dd>
+          <% end %>
+          <% if lead.email %>
+            <dt>Email</dt><dd><%= lead_mail_link(lead) %></dd>
+          <% end %>
+          <% if lead.phone %>
+            <dt>Phone</dt><dd><%= link_to lead.phone, "tel:#{lead.phone.gsub(/[^\d+]/, "")}" %></dd>
+          <% end %>
+          <% if lead.company %>
+            <dt>Company</dt><dd><%= lead.company %></dd>
+          <% end %>
+          <% if lead.website %>
+            <dt>Website</dt><dd><%= lead_website_link(lead) %></dd>
+          <% end %>
+          <% if lead.referral? %>
+            <dt>Referred by</dt><dd><%= [ lead.referrer_name, lead.referrer_email ].compact.join(", ") %></dd>
+          <% end %>
+          <% if lead.submissions_count > 1 %>
+            <dt>Forms sent</dt><dd><%= lead.submissions_count %>, the last <%= time_ago(lead.last_submitted_at) %></dd>
+          <% end %>
+        </dl>
+      <% end %>
+
+      <% details = lead_details(lead) %>
+      <% if details.any? %>
+        <%= card "From the form" do %>
+          <dl class="details leads-details">
+            <% details.each do |key, value| %>
+              <%# herb:key key %>
+              <dt><%= lead_detail_label(key) %></dt>
+              <dd class="<%= class_names("leads-details__value", faint: Leads::LeadsHelper::QUIET_DETAILS.include?(key)) %>"><%= value %></dd>
+            <% end %>
+          </dl>
+        <% end %>
+      <% end %>
+    </aside>
+  </div>
+</div>
