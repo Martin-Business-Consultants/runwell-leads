@@ -1,0 +1,28 @@
+<% content_for :reason, "You're getting this because you have open leads. The time it comes, or whether it does, is in Settings > Plugins > Leads." %>
+Your leads this morning
+<% if @due.any? %>
+
+To do today:
+<% @due.each do |step| %>
+- <%= step.lead.display_name %>: <%= step.title %><% if step.overdue? %> (was due <%= step.due_on.strftime("%b %-d") %>)<% end %>
+  <%= lead_url(step.lead) %>
+<% end %>
+<% end %>
+<% if @cold.any? %>
+
+Going cold (nobody's been in touch for a while):
+<% @cold.each do |lead| %>
+- <%= lead.display_name %>, last touched <%= time_ago_in_words(lead.last_touch_at) %> ago
+  <%= lead_url(lead) %>
+<% end %>
+<% end %>
+<% if @nobody.any? %>
+
+Nobody has these yet:
+<% @nobody.each do |lead| %>
+- <%= lead.display_name %>
+  <%= lead_url(lead) %>
+<% end %>
+<% end %>
+
+<%= @url %>

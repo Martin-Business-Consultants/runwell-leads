@@ -1,0 +1,53 @@
+<%# Writing to a lead (Leads::EmailsController#new): who it goes to, a template to start from, the
+    subject and body to edit, then Send. It goes from the install's address under your name, with
+    replies to you and a copy in your inbox. %>
+<%= parent_page @lead.display_name, lead_path(@lead) %>
+<div class="leads-narrow stack">
+  <%= card "Email #{@lead.display_name}", hint: "From #{Setting.current.brand_name}’s address under your name. Replies come to #{Current.user.person.email_address}." do %>
+    <% if @templates.any? %>
+      <div class="leads-templates" role="group" aria-label="Start from a template">
+        <span class="small muted">Start from</span>
+        <% @templates.each do |template| %>
+          <%# herb:key template.id %>
+          <%= link_to template.name, new_lead_email_path(@lead, template_id: template.id, step_id: @step&.id, to: @to.first), class: class_names("pill", "leads-template", "leads-template--current": template == @template), aria: { current: (template == @template) } %>
+        <% end %>
+      </div>
+    <% end %>
+    <%= form_with url: lead_emails_path(@lead), scope: :email, class: "leads-form", data: { controller: "form" } do |form| %>
+      <% if @step %>
+        <%= hidden_field_tag "email[step_id]", @step.id %>
+        <p class="small muted">Sending it ticks off “<%= @step.title %>”.</p>
+      <% end %>
+      <% if @template %>
+        <%= hidden_field_tag "email[template_id]", @template.id %>
+      <% end %>
+      <fieldset class="leads-recipients">
+        <legend class="field__label">To</legend>
+        <% @recipients.each do |person| %>
+          <%# herb:key person.email %>
+          <label class="leads-switch-row">
+            <%= check_box_tag "email[to][]", person.email, @to.include?(person.email), id: "email_to_#{person.email.parameterize}" %>
+            <span><%= person.name %> <span class="muted">&lt;<%= person.email %>&gt;</span></span>
+          </label>
+        <% end %>
+      </fieldset>
+      <label class="field">
+        <span class="field__label">Subject</span>
+        <%= form.text_field :subject, value: @subject, required: true, maxlength: 200, autocomplete: "off", autofocus: @subject.blank? %>
+      </label>
+      <div class="field">
+        <span class="field__label">Message</span>
+        <%= rich_text_field_tag "email[body]", @body, id: "email_body", placeholder: "Write it as you would from your own inbox" %>
+      </div>
+      <label class="leads-switch-row">
+        <%= hidden_field_tag "email[copy_me]", "0", id: nil %>
+        <%= check_box_tag "email[copy_me]", "1", true, id: "email_copy_me" %>
+        <span>Send me a copy, so the conversation carries on in my inbox</span>
+      </label>
+      <div class="button-row">
+        <%= submit_button form, "Send", data: { turbo_confirm: "Send this to #{@to.to_sentence}?" } %>
+        <%= link_to "Cancel", lead_path(@lead), class: button_classes(variant: :ghost), data: { keys: "esc" } %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

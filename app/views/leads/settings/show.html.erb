@@ -1,6 +1,7 @@
 <%= render "settings/header", current: :leads %>
-<%# The leads' settings (Leads::SettingsController): who's told when a lead comes in, the stages an
-    open lead moves through, and the forms that send leads in, each with its own address. %>
+<%# The leads' settings (Leads::SettingsController): who's told when a lead comes in, the morning
+    email and when a lead goes cold, the stages an open lead moves through and each one's plan, the
+    email templates, and the forms that send leads in, each with its own address. %>
 <div class="settings-page">
   <section class="settings-section">
     <header class="settings-section__head">
@@ -11,6 +12,28 @@
       <%= hidden_field_tag "setting[notify_user_ids][]", "", id: nil %>
       <%= form.select :notify_user_ids, leads_people.map { [ it.display_name, it.id ] }, { selected: @setting.notify_user_ids }, multiple: true, aria: { label: "Who’s told" }, data: { action: "change->form#submit" } %>
     <% end %>
+  </section>
+
+  <section class="settings-section" id="reminders">
+    <header class="settings-section__head">
+      <h2>Reminders</h2>
+      <p class="settings-section__description">Each morning, everyone with open leads is emailed what’s due today or late and which of theirs are going cold; whoever’s told about new leads also hears which nobody has. Nobody with nothing to do gets an email. A lead goes cold when nobody’s logged a call, email, meeting or note, or done a step, for the days below.</p>
+    </header>
+    <div class="leads-form__row">
+      <%= form_with model: @setting, url: leads_settings_path, method: :patch, scope: :setting, namespace: "digest", data: { controller: "form" } do |form| %>
+        <label class="field">
+          <span class="field__label">Morning email at</span>
+          <%= form.select :digest_hour, lead_digest_hour_options, { selected: @setting.digest_hour.to_s }, data: { action: "change->form#submit" } %>
+        </label>
+      <% end %>
+      <%= form_with model: @setting, url: leads_settings_path, method: :patch, scope: :setting, namespace: "cold", data: { controller: "form" } do |form| %>
+        <label class="field">
+          <span class="field__label">Going cold after (days)</span>
+          <%= form.number_field :cold_after_days, min: 1, max: 90, placeholder: "Never", data: { action: "change->form#submit" } %>
+        </label>
+      <% end %>
+      <%= action_button "Email me mine now", leads_digest_path, size: :sm %>
+    </div>
   </section>
 
   <section class="settings-section">
@@ -41,6 +64,85 @@
       <%= form.text_field :name, required: true, maxlength: 40, placeholder: "Discovery call", autocomplete: "off", aria: { label: "New stage" } %>
       <button type="submit" class="btn btn--secondary btn--sm"><%= icon_tag "add" %> <span>Add a stage</span></button>
     <% end %>
+  </section>
+
+  <section class="settings-section" id="plans">
+    <header class="settings-section__head">
+      <h2>Plans</h2>
+      <p class="settings-section__description">What happens when a lead arrives at each stage: its steps, each due some days later, and the email it starts from. A lead gets a stage’s steps once, however often it comes back. Changing a plan changes what leads get from now on.</p>
+    </header>
+    <% @stages.each do |stage| %>
+      <%# herb:key stage.id %>
+      <div class="leads-plan-stage">
+        <h3 class="leads-plan-stage__name"><%= stage.name %></h3>
+        <% steps = @plans.fetch(stage.id, []) %>
+        <% if steps.any? %>
+          <ul class="settings-list">
+            <% steps.each do |step| %>
+              <%# herb:key step.id %>
+              <li class="list-row leads-plan-step">
+                <%= form_with model: step, url: leads_playbook_step_path(step), scope: :playbook_step, method: :patch, namespace: "plan_#{step.id}", class: "leads-plan-step__form", data: { controller: "form" } do |form| %>
+                  <%= form.text_field :title, maxlength: 200, aria: { label: "Step" }, data: { action: "change->form#submit" } %>
+                  <%= form.number_field :days_after, min: 0, max: 365, class: "leads-plan-step__days", aria: { label: "Days after arriving" }, data: { action: "change->form#submit" } %>
+                  <span class="small muted">days on</span>
+                  <%= form.select :template_id, [ [ "No email", "" ] ] + @templates.map { [ it.name, it.id ] }, { selected: step.template_id.to_s }, aria: { label: "Email it starts from" }, data: { action: "change->form#submit" } %>
+                <% end %>
+                <div class="list-row__actions">
+                  <%= render "layouts/shared/delete_dialog", name: step.title, path: leads_playbook_step_path(step), message: "Leads already given it keep theirs." %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="small muted">No plan: leads arriving here get no steps.</p>
+        <% end %>
+        <%= form_with url: leads_playbook_steps_path, scope: :playbook_step, class: "leads-inline-add", namespace: "new_plan_#{stage.id}" do |form| %>
+          <%= hidden_field_tag "playbook_step[stage_id]", stage.id, id: nil %>
+          <%= form.text_field :title, required: true, maxlength: 200, placeholder: "Send a case study", autocomplete: "off", aria: { label: "New step for #{stage.name}" } %>
+          <%= form.number_field :days_after, value: 0, min: 0, max: 365, class: "leads-plan-step__days", aria: { label: "Days after arriving" } %>
+          <span class="small muted">days on</span>
+          <%= form.select :template_id, [ [ "No email", "" ] ] + @templates.map { [ it.name, it.id ] }, {}, aria: { label: "Email it starts from" } %>
+          <button type="submit" class="btn btn--secondary btn--sm"><%= icon_tag "add" %> <span>Add</span></button>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="settings-section" id="templates">
+    <header class="settings-section__head">
+      <h2>Email templates</h2>
+      <p class="settings-section__description">Emails to start from when writing to a lead: the recap, the follow-up, the last nudge. They’re edited before they go. Filled in as they’re used: <%= Leads::Template::FIELDS.map { |key, label| "{{#{key}}} (#{label})" }.join(", ") %>.</p>
+    </header>
+    <% if @templates.any? %>
+      <ul class="settings-list">
+        <% @templates.each do |template| %>
+          <%# herb:key template.id %>
+          <li class="list-row leads-template-row">
+            <details class="leads-template-edit">
+              <summary><strong><%= template.name %></strong> <span class="muted"><%= template.subject %></span></summary>
+              <%= form_with model: template, url: leads_template_path(template), scope: :template, method: :patch, namespace: "template_#{template.id}", class: "leads-form" do |form| %>
+                <%= form.text_field :name, required: true, maxlength: 80, aria: { label: "Name" } %>
+                <%= form.text_field :subject, required: true, maxlength: 200, aria: { label: "Subject" } %>
+                <%= rich_text_field form, :body %>
+                <div class="button-row"><%= submit_button form, "Save", size: :sm %></div>
+              <% end %>
+            </details>
+            <div class="list-row__actions">
+              <%= render "layouts/shared/delete_dialog", name: template.name, path: leads_template_path(template), message: "Plans and steps that start from it no longer will." %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+    <details class="leads-add">
+      <summary class="<%= button_classes(size: :sm) %>"><%= icon_tag "add" %> <span>Add a template</span></summary>
+      <%= form_with url: leads_templates_path, scope: :template, namespace: "new_template", class: "leads-form" do |form| %>
+        <%= form.text_field :name, required: true, maxlength: 80, placeholder: "Name: Case study", autocomplete: "off", aria: { label: "Name" } %>
+        <%= form.text_field :subject, required: true, maxlength: 200, placeholder: "Subject", autocomplete: "off", aria: { label: "Subject" } %>
+        <%= rich_text_field form, :body, placeholder: "Hi {{first_name}}, …" %>
+        <div class="button-row"><%= submit_button form, "Add", size: :sm %></div>
+      <% end %>
+    </details>
   </section>
 
   <section class="settings-section" id="forms">

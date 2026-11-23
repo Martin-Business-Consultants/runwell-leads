@@ -1,6 +1,7 @@
-<%# A lead (Leads::LeadsController#show): who they are and what they said, then logging a call or
-    note with what happens next, and its history; beside it, where it stands (stage, owner, next
-    step, value), how to reach them and where they came from. %>
+<%# A lead (Leads::LeadsController#show): who they are and what they said, its plan (the steps
+    laid out from each stage it reaches, ticked off as they're done), logging a call or note with
+    what happens next, and its history; beside it, where it stands (stage, owner, value), how to
+    reach them, the other people at their business, its files and links, and where they came from. %>
 <%= parent_page "Leads", leads_path %>
 <% lead = @lead %>
 <div class="leads-page">
@@ -17,6 +18,9 @@
       </p>
     </div>
     <div class="button-row">
+      <% if lead.email || lead.people.any?(&:email) %>
+        <%= button_link "Email", new_lead_email_path(lead), size: :sm, icon: "email", data: { keys: "m" } %>
+      <% end %>
       <% if lead.open? && lead.owner.nil? %>
         <%= action_button "Claim it", lead_claim_path(lead), variant: :primary, size: :sm %>
       <% end %>
@@ -67,6 +71,60 @@
         <% end %>
       <% end %>
 
+      <% open_steps = @steps.reject(&:done?) %>
+      <% done_steps = @steps.select(&:done?) %>
+      <%= card "Plan", hint: (lead.open? ? "What happens next, by when. Each stage it reaches adds its steps (Settings › Plugins › Leads), and the earliest open one is its next step." : nil), css: "leads-plan" do %>
+        <% if open_steps.any? %>
+          <ol class="leads-steps">
+            <% open_steps.each do |step| %>
+              <%# herb:key step.id %>
+              <li class="leads-step">
+                <%= button_to lead_step_path(lead, step), method: :patch, params: { step: { done: true } }, class: "leads-step__check", form_class: "leads-step__form", title: "Mark done", aria: { label: "Mark “#{step.title}” done" } do %><%= icon_tag "check" %><% end %>
+                <div class="leads-step__content">
+                  <span class="leads-step__title"><%= step.title %></span>
+                  <span class="<%= class_names("leads-step__when", "leads-date--late": step.overdue?, "leads-step__when--today": step.due_today?) %>"><%= leads_step_when(step) %></span>
+                </div>
+                <div class="leads-step__actions">
+                  <% if step.template && (lead.email || lead.people.any?(&:email)) %>
+                    <%= button_link "Write the email", new_lead_email_path(lead, step_id: step.id), size: :sm, icon: "email" %>
+                  <% end %>
+                  <%= form_with url: lead_step_path(lead, step), method: :patch, scope: :step, namespace: "step_#{step.id}", class: "leads-step__date", data: { controller: "form" } do |form| %>
+                    <%= date_input form, :due_on, value: step.due_on, size: :sm, aria: { label: "When “#{step.title}” is due" }, data: { action: "change->form#submit" } %>
+                  <% end %>
+                  <%= render "layouts/shared/delete_dialog", name: step.title, path: lead_step_path(lead, step), message: "It comes off the plan. To say it happened, mark it done instead." %>
+                </div>
+              </li>
+            <% end %>
+          </ol>
+        <% elsif lead.open? %>
+          <p class="muted">Nothing planned. Add what happens next below, or move it to a stage with a plan.</p>
+        <% end %>
+        <% if lead.open? %>
+          <%= form_with url: lead_steps_path(lead), scope: :step, namespace: "new_step", class: "leads-inline-add" do |form| %>
+            <%= form.text_field :title, required: true, maxlength: 200, autocomplete: "off", placeholder: "Send the case study", aria: { label: "A step to add" } %>
+            <%= date_input form, :due_on, value: Date.current + 1, aria: { label: "By" } %>
+            <%= submit_button form, "Add", variant: :secondary, size: :sm %>
+          <% end %>
+        <% end %>
+        <% if done_steps.any? %>
+          <details class="leads-done">
+            <summary><%= pluralize(done_steps.size, "step") %> done</summary>
+            <ol class="leads-steps">
+              <% done_steps.each do |step| %>
+                <%# herb:key step.id %>
+                <li class="leads-step leads-step--done">
+                  <%= button_to lead_step_path(lead, step), method: :patch, params: { step: { done: false } }, class: "leads-step__check leads-step__check--done", form_class: "leads-step__form", title: "Open it again", aria: { label: "Open “#{step.title}” again" } do %><%= icon_tag "check" %><% end %>
+                  <div class="leads-step__content">
+                    <span class="leads-step__title"><%= step.title %></span>
+                    <span class="leads-step__when">done <%= time_ago(step.done_at) %><% if step.done_by %> by <%= step.done_by.display_name %><% end %></span>
+                  </div>
+                </li>
+              <% end %>
+            </ol>
+          </details>
+        <% end %>
+      <% end %>
+
       <%= card "Log a call, email, meeting or note" do %>
         <%= form_with url: lead_activities_path(lead), scope: :activity, class: "leads-form", data: { controller: "form" } do |form| %>
           <div class="leads-kinds" role="radiogroup" aria-label="What it was">
@@ -82,12 +140,12 @@
           <% if lead.open? %>
             <div class="leads-form__row">
               <label class="field leads-form__grow">
-                <span class="field__label">Next step</span>
-                <%= form.text_field :next_step, value: lead.next_step, maxlength: 200, autocomplete: "off", placeholder: "Send the proposal" %>
+                <span class="field__label">Add a step</span>
+                <%= form.text_field :next_step, maxlength: 200, autocomplete: "off", placeholder: "Send the proposal" %>
               </label>
               <label class="field">
                 <span class="field__label">By</span>
-                <%= date_input form, :next_step_on, value: lead.next_step_on %>
+                <%= date_input form, :next_step_on, value: nil %>
               </label>
               <label class="field">
                 <span class="field__label">Stage</span>
@@ -159,17 +217,7 @@
           </dd>
         </dl>
         <% if lead.open? %>
-          <%= form_with model: lead, url: lead_path(lead), scope: :lead, method: :patch, namespace: "next", class: "leads-form" do |form| %>
-            <input type="hidden" name="inline" value="1">
-            <label class="field">
-              <span class="field__label">Next step</span>
-              <%= form.text_field :next_step, maxlength: 200, autocomplete: "off", placeholder: "Call back" %>
-            </label>
-            <div class="leads-form__row">
-              <%= date_input form, :next_step_on, aria: { label: "By" } %>
-              <%= submit_button form, "Save", variant: :secondary, size: :sm %>
-            </div>
-          <% end %>
+          <p class="small muted">Next: <%= lead_next_step(lead) %></p>
         <% end %>
       <% end %>
 
@@ -197,6 +245,74 @@
             <dt>Forms sent</dt><dd><%= lead.submissions_count %>, the last <%= time_ago(lead.last_submitted_at) %></dd>
           <% end %>
         </dl>
+      <% end %>
+
+      <%= card "People there", hint: "Who decides, who’s keen, who else is involved. They become contacts when it’s won." do %>
+        <% if lead.people.any? %>
+          <ul class="leads-people">
+            <% lead.people.each do |person| %>
+              <%# herb:key person.id %>
+              <li class="leads-person">
+                <div class="leads-person__content">
+                  <span class="leads-person__name"><%= person.name %></span>
+                  <% if person.role_label %>
+                    <%= badge(person.role, person.role_label, tone: (person.role == "decides" ? :ok : :outline)) %>
+                  <% end %>
+                  <% if person.title %>
+                    <span class="small muted"><%= person.title %></span>
+                  <% end %>
+                  <span class="small">
+                    <% if person.email %><%= mail_to person.email %><% end %>
+                    <% if person.phone %> <%= link_to person.phone, "tel:#{person.phone.gsub(/[^\d+]/, "")}" %><% end %>
+                  </span>
+                </div>
+                <%= render "layouts/shared/delete_dialog", name: person.name, path: lead_person_path(lead, person), message: "They come off the lead." %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <details class="leads-add">
+          <summary class="<%= button_classes(size: :sm) %>"><%= icon_tag "person-add" %> <span>Add someone</span></summary>
+          <%= form_with url: lead_people_path(lead), scope: :person, namespace: "new_person", class: "leads-form" do |form| %>
+            <%= form.text_field :name, required: true, maxlength: 120, autocomplete: "off", placeholder: "Name", aria: { label: "Name" } %>
+            <%= form.text_field :title, maxlength: 120, autocomplete: "off", placeholder: "Their job", aria: { label: "Their job" } %>
+            <%= form.email_field :email, autocomplete: "off", placeholder: "Email", aria: { label: "Email" } %>
+            <%= form.telephone_field :phone, autocomplete: "off", placeholder: "Phone", aria: { label: "Phone" } %>
+            <%= form.select :role, Leads::Person::ROLES.map { |key, label| [ label, key ] }, { include_blank: "Their part…" }, aria: { label: "Their part" } %>
+            <div class="button-row"><%= submit_button form, "Add", size: :sm %></div>
+          <% end %>
+        </details>
+      <% end %>
+
+      <%= card "Files and links", hint: "The proposal, a deck, the doc you share. Files go to the client’s documents when it’s won." do %>
+        <% if lead.attachments.any? %>
+          <ul class="leads-files">
+            <% lead.attachments.each do |attachment| %>
+              <%# herb:key attachment.id %>
+              <li class="leads-file">
+                <%= icon_tag(attachment.link? ? "world" : "attachment") %>
+                <% if attachment.link? %>
+                  <%= link_to attachment.display_name, attachment.url, target: "_blank", rel: "noopener", class: "leads-file__name" %>
+                <% else %>
+                  <%= link_to attachment.display_name, main_app.rails_blob_path(attachment.file, disposition: "attachment"), class: "leads-file__name" %>
+                <% end %>
+                <span class="faint small"><%= time_ago(attachment.created_at, short: true) %></span>
+                <% if attachment.removable_by?(Current.user) %>
+                  <%= render "layouts/shared/delete_dialog", name: attachment.display_name, path: lead_attachment_path(lead, attachment), message: "It comes off the lead." %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <details class="leads-add">
+          <summary class="<%= button_classes(size: :sm) %>"><%= icon_tag "add" %> <span>Add a file or link</span></summary>
+          <%= form_with url: lead_attachments_path(lead), scope: :attachment, namespace: "new_attachment", class: "leads-form", multipart: true do |form| %>
+            <%= form.text_field :url, autocomplete: "off", placeholder: "A link: docs.google.com/…", aria: { label: "A link" } %>
+            <%= form.file_field :file, aria: { label: "Or a file" } %>
+            <%= form.text_field :name, maxlength: 120, autocomplete: "off", placeholder: "Name (optional)", aria: { label: "Name" } %>
+            <div class="button-row"><%= submit_button form, "Add", size: :sm %></div>
+          <% end %>
+        </details>
       <% end %>
 
       <% details = lead_details(lead) %>

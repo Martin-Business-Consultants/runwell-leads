@@ -47,7 +47,24 @@ module Leads
     def lead_activity_icon(activity)
       { "call" => "bolt", "email" => "email", "meeting" => "calendar", "note" => "comment", "created" => "add", "submitted" => "paper-plane",
         "owner" => "person", "stage" => "arrow-right", "next_step" => "marker", "won" => "check-circle", "lost" => "close-circle",
-        "reopened" => "refresh", "value" => "tag" }[activity.kind] || "dot"
+        "reopened" => "refresh", "value" => "tag", "plan" => "board", "step_added" => "marker", "step_done" => "check", "file" => "attachment" }[activity.kind] ||
+        "dot"
+    end
+
+    # When a step is due, in words: "Today", "Tomorrow", "Was due Nov 12", "Fri, Nov 28".
+    def leads_step_when(step)
+      return "No date" unless step.due_on
+
+      days = (step.due_on - Date.current).to_i
+      if days.negative? then "Was due #{step.due_on.strftime("%b %-d")}"
+      elsif days.zero? then "Today"
+      elsif days == 1 then "Tomorrow"
+      else step.due_on.strftime(days < 7 ? "%A" : "%a, %b %-d")
+      end
+    end
+
+    def lead_digest_hour_options
+      [ [ "Off", "" ] ] + Leads::Setting::DIGEST_HOURS.map { [ Time.zone.now.change(hour: it).strftime("%-l %P"), it ] }
     end
 
     def lead_mail_link(lead)

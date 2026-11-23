@@ -123,4 +123,71 @@
   .leads-inline-add input { flex: 1 1 14rem; }
   .leads-howto { display: flex; flex-direction: column; gap: var(--s-2); }
   .leads-howto summary { cursor: pointer; }
+
+  /* A lead's plan: open steps with a check to tick, when they're due, and the email they start from */
+  .leads-steps { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+
+  .leads-step {
+    align-items: center;
+    border-block-start: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+  }
+
+  .leads-step:first-child { border-block-start: 0; }
+  .leads-step__form { display: inline-flex; }
+
+  .leads-step__check {
+    align-items: center;
+    background: transparent;
+    block-size: 1.5rem;
+    border: 1.5px solid var(--line-strong, var(--line));
+    border-radius: 50%;
+    color: transparent;
+    cursor: pointer;
+    display: inline-flex;
+    inline-size: 1.5rem;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .leads-step__check:hover, .leads-step__check:focus-visible { border-color: var(--primary); color: var(--primary); }
+  .leads-step__check--done { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+  .leads-step__content { display: flex; flex: 1 1 12rem; flex-direction: column; min-inline-size: 0; }
+  .leads-step__title { overflow-wrap: anywhere; }
+  .leads-step__when { color: var(--muted-foreground); font-size: var(--text-meta); }
+  .leads-step__when--today { color: var(--primary); font-weight: var(--weight-strong); }
+  .leads-step--done .leads-step__title { color: var(--muted-foreground); text-decoration: line-through; }
+  .leads-step__actions { align-items: center; display: flex; flex-wrap: wrap; gap: var(--s-1); }
+  .leads-step__date { display: inline-flex; }
+  .leads-done { display: flex; flex-direction: column; gap: var(--s-2); }
+  .leads-done summary { color: var(--muted-foreground); cursor: pointer; font-size: var(--text-meta); }
+
+  /* People and files on a lead */
+  .leads-people, .leads-files { display: flex; flex-direction: column; gap: var(--s-2); list-style: none; margin: 0; padding: 0; }
+  .leads-person { align-items: flex-start; display: flex; gap: var(--s-2); justify-content: space-between; }
+  .leads-person__content { display: flex; flex-direction: column; gap: 0.125rem; min-inline-size: 0; overflow-wrap: anywhere; }
+  .leads-person__name { font-weight: var(--weight-strong); }
+  .leads-file { align-items: center; display: flex; gap: var(--s-2); }
+  .leads-file__name { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+  .leads-add { display: flex; flex-direction: column; gap: var(--s-2); }
+  .leads-add summary { cursor: pointer; inline-size: fit-content; list-style: none; }
+  .leads-add summary::-webkit-details-marker { display: none; }
+
+  /* Writing an email */
+  .leads-templates { align-items: center; display: flex; flex-wrap: wrap; gap: var(--s-1); }
+  .leads-template--current { background: var(--brand-tint, var(--hover)); border-color: var(--primary); }
+  .leads-recipients { border: 0; display: flex; flex-direction: column; gap: var(--s-1); margin: 0; padding: 0; }
+
+  /* Settings: each stage's plan and the templates */
+  .leads-plan-stage { display: flex; flex-direction: column; gap: var(--s-2); }
+  .leads-plan-stage__name { font-size: var(--text-ui); margin: 0; }
+  .leads-plan-step__form { align-items: center; display: flex; flex: 1; flex-direction: row; flex-wrap: wrap; gap: var(--s-2); }
+  .leads-plan-step__form input[type="text"] { flex: 1 1 14rem; }
+  .leads-plan-step__days { inline-size: 4.5rem; }
+  .leads-template-row { align-items: flex-start; }
+  .leads-template-edit { display: flex; flex: 1; flex-direction: column; gap: var(--s-2); min-inline-size: 0; }
+  .leads-template-edit summary { cursor: pointer; }
 }

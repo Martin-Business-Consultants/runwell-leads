@@ -8,6 +8,10 @@ module Leads
   # Every change worth knowing records an Activity (its owner, stage and next step, by whoever made
   # it, Current.user), so its history reads the same whether a person, the board, the bulk bar or
   # an agent made it.
+  #
+  # Its journey (3.1): arriving at a stage lays out that stage's plan as steps, each due some days
+  # on (lay_out_plan!); its next step is always its earliest open step (sync_next_step!); and one
+  # nobody has been in touch with for Setting#cold_after_days is going cold.
   class Lead < ApplicationRecord
     self.table_name = "leads_leads"
 
@@ -27,6 +31,9 @@ module Leads
     belongs_to :created_by, class_name: "User", optional: true
     belongs_to :client, optional: true
     has_many :activities, -> { order(created_at: :desc, id: :desc) }, class_name: "Leads::Activity", dependent: :delete_all
+    has_many :steps, class_name: "Leads::Step", dependent: :delete_all
+    has_many :people, -> { order(:id) }, class_name: "Leads::Person", dependent: :delete_all
+    has_many :attachments, -> { newest }, class_name: "Leads::Attachment", dependent: :destroy
 
     normalizes :email, with: ->(email) { email.to_s.strip.downcase.presence }
     normalizes :name, :company, :phone, :website, :source, :next_step, with: ->(value) { value.to_s.squish.presence }
@@ -40,8 +47,10 @@ module Leads
 
     before_validation { self.stage ||= Stage.first_stage if open? }
     after_create :log_creation
+    after_create { lay_out_plan!(stage, by: created_by) if stage }
     after_create_commit :announce
     after_update :record_changes
+    after_update { lay_out_plan!(stage, by: Current.user) if saved_change_to_stage_id? && open? && stage }
 
     scope :open, -> { where(state: "open") }
     scope :won, -> { where(state: "won") }
@@ -49,11 +58,19 @@ module Leads
     scope :newest, -> { order(created_at: :desc, id: :desc) }
     scope :unassigned, -> { where(owner_id: nil) }
     scope :owned_by, ->(user) { where(owner_id: user) }
-    # Open, past their first stage, with no next step; or a next step whose date has gone.
+    # Open, past their first stage, with no next step; or a next step whose date has gone; or nobody
+    # in touch for Setting#cold_after_days.
     scope :needing_attention, -> {
       first = Leads::PerRequest.first_stage_id
-      open.where(next_step_on: ...Date.current).or(open.where(next_step_on: nil).where.not(stage_id: first))
+      scope = open.where(next_step_on: ...Date.current).or(open.where(next_step_on: nil).where.not(stage_id: first))
+      (cutoff = Lead.cold_cutoff) ? scope.or(open.where("COALESCE(leads_leads.last_activity_at, leads_leads.created_at) < ?", cutoff)) : scope
     }
+    # Open, with a next step due today or gone.
+    scope :due_now, -> { open.where(next_step_on: ..Date.current) }
+    scope :going_cold, -> { (cutoff = Lead.cold_cutoff) ? open.where("COALESCE(leads_leads.last_activity_at, leads_leads.created_at) < ?", cutoff) : none }
+
+    # Before this, nobody's been in touch long enough for it to be going cold; nil when that's off.
+    def self.cold_cutoff = Leads::PerRequest.cold_after_days&.days&.ago
 
     # Every word typed in the page filter appears in one of TEXT_COLUMNS (Runwell's paginate).
     def self.filter_text(query)
@@ -73,17 +90,82 @@ module Leads
     def stage_label = open? ? stage&.name : state_label
     def referral? = referrer_name.present? || referrer_email.present?
 
-    # Whether it needs someone: :overdue (its next step's date has gone) or :no_next_step (open,
-    # past its first stage, with nothing planned). Nil when it's fine.
+    # Whether it needs someone: :overdue (its next step's date has gone), :no_next_step (open, past
+    # its first stage, with nothing planned) or :going_cold (nobody in touch for a while). Nil when
+    # it's fine.
     def attention
       return unless open?
       return :overdue if next_step_on && next_step_on < Date.current
       return :no_next_step if next_step.blank? && next_step_on.nil? && stage_id != Leads::PerRequest.first_stage_id
+      return :going_cold if (cutoff = Lead.cold_cutoff) && last_touch_at < cutoff
 
       nil
     end
 
-    def attention_label = { overdue: "Overdue", no_next_step: "No next step" }[attention]
+    def attention_label = { overdue: "Overdue", no_next_step: "No next step", going_cold: "Going cold" }[attention]
+
+    # When someone was last in touch (a call, an email, a meeting, a note, a step done), else when it came in.
+    def last_touch_at = last_activity_at || created_at
+
+    # Its first person (the lead's own name and email) and anyone else at the business, those with
+    # an email, for writing to.
+    def recipients
+      first = Person.new(name: name.presence || company.presence || email, email: email) if email
+      ([ first ] + people.to_a).compact.select(&:email).uniq(&:email)
+    end
+
+    # The steps of a stage's plan it hasn't had yet, each due its days on from today. A lead moved
+    # back to a stage it's been at doesn't get them again.
+    def lay_out_plan!(stage, by: Current.user)
+      had = steps.where.not(playbook_step_id: nil).pluck(:playbook_step_id)
+      planned = stage.playbook_steps.ordered.reject { had.include?(it.id) }
+      return if planned.empty?
+
+      planned.each do |step|
+        steps.create!(title: step.title, due_on: Date.current + step.days_after, playbook_step: step, template_id: step.template_id, created_by: by)
+      end
+      log!("plan", by: by, data: { stage: stage.name, steps: planned.map(&:title) })
+      sync_next_step!
+    end
+
+    # A step added by hand, or after a call. One just like an open one (same title and date) isn't added twice.
+    def add_step!(title:, due_on: nil, by: Current.user, template_id: nil)
+      title = title.to_s.squish.presence || "Follow up"
+      return steps.open.find_by(title: title, due_on: due_on) if steps.open.exists?(title: title, due_on: due_on)
+
+      step = steps.create!(title: title, due_on: due_on.presence, created_by: by, template_id: template_id.presence)
+      log!("step_added", by: by, data: { step: step.title, on: step.due_on&.iso8601 })
+      sync_next_step!
+      step
+    end
+
+    # Done (counting as being in touch), or open again.
+    def complete_step!(step, by: Current.user)
+      return step if step.done?
+
+      transaction do
+        step.update!(done_at: Time.current, done_by: by&.person)
+        activity = log!("step_done", by: by, data: { step: step.title })
+        update_columns(last_activity_at: activity.created_at)
+        sync_next_step!
+      end
+      step
+    end
+
+    def reopen_step!(step, by: Current.user)
+      return step unless step.done?
+
+      step.update!(done_at: nil, done_by: nil)
+      sync_next_step!
+      step
+    end
+
+    # Its next step and date, from its earliest open step (or none), without a history line: the
+    # steps themselves are the history.
+    def sync_next_step!
+      first = steps.open.in_order.first
+      update_columns(next_step: first&.title, next_step_on: first&.due_on, updated_at: Time.current)
+    end
 
     # Someone already on file with this address: a client's person. Shown on the lead, so nobody
     # sells to an existing client as a stranger.

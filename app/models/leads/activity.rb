@@ -14,7 +14,8 @@ module Leads
     validates :body, presence: { message: "needs a few words" }, if: :logged?
 
     def logged? = LOGGED.key?(kind)
-    def removable_by?(person) = logged? && (user&.person == person.person || person.can?(:delete_records))
+    def sent? = kind == "email" && data["sent"].present?
+    def removable_by?(person) = logged? && !sent? && (user&.person == person.person || person.can?(:delete_records))
 
     # What happened, in a sentence without its author ("moved it to Call held").
     def summary(stages: nil, people: nil)
@@ -28,6 +29,11 @@ module Leads
       when "won" then "won it#{" as #{data["client"]}" if data["client"]}"
       when "lost" then "lost it: #{Lead::LOST_REASONS[data["reason"]] || "no reason"}"
       when "reopened" then "reopened it"
+      when "plan" then "laid out the #{data["stage"]} plan: #{Array(data["steps"]).join("; ")}"
+      when "step_added" then "planned: #{data["step"]}#{" by #{format_date(data["on"])}" if data["on"].present?}"
+      when "step_done" then "did: #{data["step"]}"
+      when "email" then data["sent"] ? "emailed #{Array(data["to"]).join(", ")}: “#{data["subject"]}”" : "logged an email"
+      when "file" then "added #{data["name"]}"
       when "earlier" then data["summary"].to_s.sub(/\A\p{Lu}(?=\p{Ll})/) { it.downcase }.presence || "did something before 3.0"
       else LOGGED[kind] ? "logged #{LOGGED[kind].downcase == "email" ? "an email" : "a #{LOGGED[kind].downcase}"}" : kind.humanize.downcase
       end
@@ -43,6 +49,12 @@ module Leads
         [ "set the next step:", data["step"].presence || "something", ("by #{date}" if date) ].compact.join(" ")
       rescue Date::Error
         "set the next step: #{data["step"]}"
+      end
+
+      def format_date(value)
+        Date.parse(value.to_s).strftime("%b %-d")
+      rescue Date::Error
+        value.to_s
       end
 
       def stage_name(id, stages) = (stages ? stages[id] : Stage.find_by(id: id))&.then { it.is_a?(String) ? it : it.name } || "a stage since removed"

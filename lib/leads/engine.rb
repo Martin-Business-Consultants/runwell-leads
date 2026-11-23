@@ -12,6 +12,9 @@ module Leads
           post "capture/:token", to: "captures#create", as: :capture, constraints: { token: /[A-Za-z0-9_-]{16,64}/ }
           resource :settings, only: %i[show update]
           resources :stages, only: %i[create update destroy]
+          resources :playbook_steps, path: "plans", only: %i[create update destroy]
+          resources :templates, only: %i[create update destroy]
+          resource :digest, only: :create
           resources :capture_keys, path: "forms", only: %i[create destroy]
           resource :bulk, only: %i[update destroy], controller: "bulk"
           post "stages/:stage_id/drops/:id", to: "drops#create", as: :stage_drop
@@ -22,6 +25,10 @@ module Leads
           resource :loss, only: :create
           resource :reopening, only: :create
           resources :activities, only: %i[create destroy]
+          resources :steps, only: %i[create update destroy]
+          resources :people, only: %i[create update destroy]
+          resources :attachments, path: "files", only: %i[create destroy]
+          resources :emails, only: %i[new create]
         end
       end
     end
@@ -38,13 +45,15 @@ module Leads
     config.to_prepare do
       Runwell::Plugins.register :leads, name: "Leads", version: Leads::VERSION, author: "Martin Business Consultants",
         enabled_by_default: false, requires: ">= 5.31.0", homepage: "https://github.com/Martin-Business-Consultants/runwell-leads",
-        description: "Leads from your website's forms, worked through to a sale: each one's stage, owner and next step, a board and a table, " \
-          "calls and notes, and the people told when one comes in. Winning one makes it a client (with its contact and first work); " \
-          "nothing reaches your clients before that. Tools for AI to work them too."
+        description: "Leads from your website's forms and your calls, worked through to a sale: a board and a table by stage, and a plan for each stage " \
+          "(a recap the day of the call, the proposal two days on, follow-ups after) laid out on every lead as it arrives, with email templates to start from. " \
+          "Email a lead from its page, keep the people, files and links on it, and get each morning's follow-ups and leads going cold by email. " \
+          "Winning one makes it a client with its contacts, files and story; nothing reaches your clients before that. Tools for AI to work them too."
       Runwell::Plugins.nav :leads, "Leads", -> { leads_path }, icon: "person-add"
       Runwell::Plugins.permission :leads, :win_leads, name: "Mark leads won, making them clients", roles: %w[owner manager]
       Runwell::Plugins.stylesheet :leads, "leads/leads"
       Runwell::Plugins.settings :leads, "Leads", -> { leads_settings_path if can?(:manage_settings) }
+      Runwell::Plugins.nightly :leads, -> { Leads::DigestJob.schedule }
     end
   end
 end

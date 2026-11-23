@@ -6,6 +6,8 @@ module Leads
     self.table_name = "leads_stages"
 
     has_many :leads, class_name: "Leads::Lead", dependent: :restrict_with_error
+    # Its plan: the steps a lead gets on arriving here (Leads::PlaybookStep).
+    has_many :playbook_steps, class_name: "Leads::PlaybookStep", dependent: :destroy
 
     normalizes :name, with: ->(name) { name.to_s.squish }
     validates :name, presence: true, length: { maximum: 40 }, uniqueness: { case_sensitive: false }
