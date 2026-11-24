@@ -66,6 +66,10 @@ form that's been deleted, and `429` past the limit.
 
 ## Upgrading to 3.1
 
+3.1.1 fixes 3.1.0 on an install that once had Leads 2: two of 2's tables (`leads_templates`,
+`leads_steps`) shared names with 3.1's, so 3.1.0's migration failed and Runwell wouldn't start. 3.1.1
+renames 2's aside first (`leads_v2_*`), as 3.0 did with the rest.
+
 Updating adds the plan, people, files and templates tables and a plan for each of the four stages
 3.0 starts with (by name: a stage you renamed or added starts with none), with five templates, only
 if you have none yet. Each open lead's next step becomes the first step of its plan. Leads already
